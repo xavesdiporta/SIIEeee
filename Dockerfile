@@ -29,6 +29,9 @@ RUN npm run build
 RUN chmod -R 775 storage bootstrap/cache && \
     chown -R www-data:www-data /var/www/html
 
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
+    && a2enmod rewrite
+
 EXPOSE 5000
 
 # ✅ Migrate aqui, não no build
