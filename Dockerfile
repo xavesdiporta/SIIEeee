@@ -18,9 +18,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 COPY package*.json vite.config.js ./
 RUN npm install
 
+COPY .env.example .env
+
 COPY . /var/www/html
 
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-pcntl
 
 RUN npm run build
 
