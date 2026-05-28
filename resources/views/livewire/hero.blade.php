@@ -6,7 +6,7 @@
         {{-- Slide 1 --}}
         <div class="absolute inset-0 transition-opacity duration-1000"
              x-bind:class="current === 0 ? 'opacity-100' : 'opacity-0'">
-            <img src="/images/agrupamento/foto1.jpg"
+            <img src="/images/down.jpg"
                  alt="Foto do agrupamento 1"
                  class="w-full h-full object-cover" />
         </div>
@@ -14,7 +14,7 @@
         {{-- Slide 2 --}}
         <div class="absolute inset-0 transition-opacity duration-1000"
              x-bind:class="current === 1 ? 'opacity-100' : 'opacity-0'">
-            <img src="/images/agrupamento/foto2.jpg"
+            <img src="/images/jota-joti-2024.jpg"
                  alt="Foto do agrupamento 2"
                  class="w-full h-full object-cover" />
         </div>
@@ -22,7 +22,7 @@
         {{-- Slide 3 --}}
         <div class="absolute inset-0 transition-opacity duration-1000"
              x-bind:class="current === 2 ? 'opacity-100' : 'opacity-0'">
-            <img src="/images/agrupamento/foto3.jpg"
+            <img src="/images/agru.jpg"
                  alt="Foto do agrupamento 3"
                  class="w-full h-full object-cover" />
         </div>
