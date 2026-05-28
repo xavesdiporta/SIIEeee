@@ -1,6 +1,6 @@
-<div class="hero min-h-screen bg-base-100 relative overflow-hidden">
+<div class="hero min-h-screen bg-base-100 relative" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;">
 
-    {{-- Carousel de fundo --}}
+{{-- Carousel de fundo --}}
     <div class="absolute inset-0 z-0" x-data="{ current: 0, total: 3 }" x-init="setInterval(() => current = (current + 1) % total, 5000)">
 
         {{-- Slide 1 --}}
