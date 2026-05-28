@@ -96,7 +96,7 @@
             <div class="order-first lg:order-last">
                 <div class="overflow-hidden rounded-lg bg-base-200 shadow-md transition-all hover:shadow-xl">
                     {{-- Substitui pelo caminho da tua foto dos Caminheiros --}}
-                    <img alt="Caminheiros" class="overflow-hidden rounded-ss-lg w-full object-cover" src="/images/seccoes/caminheiros.jpg" />
+                    <img alt="Caminheiros" class="overflow-hidden rounded-ss-lg w-full object-cover" src="/images/cla.jpeg" />
                 </div>
             </div>
         </div>
