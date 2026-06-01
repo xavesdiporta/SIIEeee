@@ -37,7 +37,7 @@
         {{-- Escuteiros --}}
         <div class="mt-8 grid gap-8 lg:mt-20 lg:grid-cols-2 lg:gap-12">
             <div>
-                <div class="badge badge-success text-white">{{ __('11 – 14 anos') }}</div>
+                <div class="badge badge-success text-white">{{ __('10 – 14 anos') }}</div>
                 <h3 class="mt-2 text-3xl font-semibold">{{ __('Escuteiros') }}</h3>
                 <p class="mt-2 text-base">
                     {{ __('A secção dos Escuteiros é onde o método escutista se desenvolve plenamente. Acampamentos, trilhos, técnicas de campo e serviço à comunidade são o coração desta secção.') }}
@@ -64,7 +64,7 @@
                 <img alt="Pioneiros" class="overflow-hidden rounded-ss-lg w-full object-cover" src="/images/seccoes/pioneiros.jpg" />
             </div>
             <div class="lg:mt-8">
-                <div class="badge badge-error text-white">{{ __('15 – 17 anos') }}</div>
+                <div class="badge badge-error text-white">{{ __('14 – 18 anos') }}</div>
                 <h3 class="mt-2 text-3xl font-semibold">{{ __('Pioneiros') }}</h3>
                 <p class="mt-2 text-base">
                     {{ __('Os Pioneiros assumem maior autonomia e responsabilidade. Desenvolvem projetos de serviço, participam em eventos nacionais e internacionais e aprofundam o seu crescimento pessoal.') }}
@@ -81,7 +81,7 @@
         {{-- Caminheiros --}}
         <div class="mt-8 grid gap-8 lg:mt-20 lg:grid-cols-2 lg:gap-12">
             <div>
-                <div class="badge badge-info text-white">{{ __('18 – 21 anos') }}</div>
+                <div class="badge badge-info text-white">{{ __('18 – 22 anos') }}</div>
                 <h3 class="mt-2 text-3xl font-semibold">{{ __('Caminheiros') }}</h3>
                 <p class="mt-2 text-base">
                     {{ __('Os Caminheiros são a secção mais sénior. Num espírito de aventura e partilha, preparam a transição para a vida adulta com valores sólidos e experiências marcantes.') }}

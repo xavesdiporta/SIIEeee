@@ -1,6 +1,6 @@
 <div class="hero min-h-screen bg-base-100 relative" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;">
 
-{{-- Carousel de fundo --}}
+    {{-- Carousel de fundo --}}
     <div class="absolute inset-0 z-0" x-data="{ current: 0, total: 3 }" x-init="setInterval(() => current = (current + 1) % total, 5000)">
 
         {{-- Slide 1 --}}
@@ -46,28 +46,15 @@
     {{-- Conteúdo do hero --}}
     <div class="hero-content flex-col text-center relative z-10 text-white px-4">
         <div class="max-w-3xl">
-            <div class="badge badge-secondary badge-lg mb-4 text-white border-0">
+            <div class="badge badge-lg mb-4 border-0 text-white" style="background-color: #3b6e3b;">
                 {{ __('Agrupamento 542 · Entroncamento') }}
             </div>
             <h1 class="text-5xl sm:text-7xl font-bold drop-shadow-lg">
                 {{ __('Corpo Nacional de Escutas') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-white/85 max-w-xl mx-auto drop-shadow">
-                {{ __('Bem-vindo ao sistema de gestão do Agrupamento 542 do Entroncamento. Aqui podes acompanhar o progresso, atividades e muito mais.') }}
+                {{ __('Bem-vindo ao site do Agrupamento 542 do Entroncamento.') }}
             </p>
-            <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-                <a href="{{ route('register') }}" class="btn btn-secondary btn-lg text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                         stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>
-                    </svg>
-                    {{ __('Entrar no Sistema') }}
-                </a>
-                <a href="#features" class="btn btn-outline btn-lg text-white border-white hover:bg-white hover:text-black">
-                    {{ __('Saber Mais') }}
-                </a>
-            </div>
         </div>
     </div>
 
