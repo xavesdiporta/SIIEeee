@@ -16,10 +16,10 @@
             </div>
 
             <a href="/" class="flex flex-row items-center justify-center font-bold text-md">
-                <img class="w-16" src="{{ asset('/images/logo.svg') }}" alt="">
+                <img class="w-16" src="{{ asset('/images/logo-banana.jpg') }}" alt="">
                 <span class="ml-2 flex flex-col items-start">
                     <span class="leading-4" style="color: oklch(22.45% 0.075 37.85);">
-                        {{ __('Your Startup Name') }}
+                        {{ __('Agrupamento 542 Entroncamento') }}
                     </span>
                 </span>
             </a>
