@@ -53,7 +53,6 @@
     {{ $slot }}
 </div>
 
-<livewire:footer/>
 <livewire:copyright/>
 
 @livewireScripts

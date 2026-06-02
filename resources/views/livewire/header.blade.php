@@ -13,12 +13,6 @@
                               d="M4 6h16M4 12h8m-8 6h16"/>
                     </svg>
                 </div>
-                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow rounded-lg w-52 backdrop-blur-xl border border-[oklch(90%_0.076_70.697_/0.4)]"  style=" background-color: oklch(98% 0.016 73.684 / 0.85); color: oklch(40% 0.123 38.172);">
-                    <li><a href="#">{{ __('About Us') }}</a></li>
-                    <li><a href="#">{{ __('Pricing') }}</a></li>
-                    <li><a href="#">{{ __('How It Works') }}</a></li>
-                    <li><a href="{{ route('blog.index') }}">{{ __('Blog') }}</a></li>
-                </ul>
             </div>
 
             <a href="/" class="flex flex-row items-center justify-center font-bold text-md">
@@ -29,17 +23,6 @@
                     </span>
                 </span>
             </a>
-        </div>
-
-        <!-- Navbar center -->
-        <div class="navbar-center hidden lg:flex">
-            <ul class="menu menu-horizontal px-1" style="color: oklch(40% 0.123 38.172);">
-                <li><a href="#">{{ __('About Us') }}</a></li>
-                <li><a href="#">{{ __('Pricing') }}</a></li>
-                <li><a href="#">{{ __('How It Works') }}</a></li>
-                <li><a href="{{ route('blog.index') }}">{{ __('Blog') }}</a></li>
-                <li><a href="{{ route('coming-soon') }}">{{ __('Coming Soon') }}</a></li>
-            </ul>
         </div>
 
         <!-- Navbar end -->
