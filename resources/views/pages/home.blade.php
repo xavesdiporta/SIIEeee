@@ -4,5 +4,4 @@
     <livewire:partners/>
     <livewire:features-flow/>
     <livewire:content-with-image/>
-    <livewire:partners/>
 </x-home-layout>
