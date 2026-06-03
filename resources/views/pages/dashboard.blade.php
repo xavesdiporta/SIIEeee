@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="py-8 px-4 sm:px-6 lg:px-8">
 
         @php
             $categories = [
@@ -18,11 +18,11 @@
         @endphp
 
         {{-- LINHA DE TOPO: Círculo + Dados do utilizador --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 mb-6 flex flex-col md:flex-row items-center gap-8">
+        <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-8mb-6 flex flex-col md:flex-row items-center gap-8">
 
             {{-- Círculo de Progresso --}}
             <div class="flex flex-col items-center shrink-0">
-                <div class="relative w-48 h-48 rounded-full shadow-lg"
+                <div class="relative w-64 h-64 rounded-full shadow-lg"
                      style="background: conic-gradient(from 302deg,
                         #7F1D1D 0deg 116deg,
                         transparent 116deg 120deg,
@@ -31,8 +31,8 @@
                         #FECACA 240deg 356deg,
                         transparent 356deg 360deg
                      );">
-                    <div class="absolute inset-6 bg-white rounded-full flex items-center justify-center">
-                        <div class="w-24 h-24 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden">
+                    <div class="absolute inset-8 bg-white rounded-full flex items-center justify-center">
+                        <div class="w-32 h-32 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden">
                             <img src="{{ asset('images/caminho.png') }}" alt="Caminho" class="w-full h-full object-cover">
                         </div>
                     </div>
@@ -112,7 +112,7 @@
                             <div class="flex flex-wrap gap-2 pl-9">
                                 @foreach($cat['refs'] as $ref)
                                     @php $isCompleted = in_array($ref, $completedRefs); @endphp
-                                    <div class="w-3.5 h-3.5 rounded-full border-2 transition-all duration-300"
+                                    <div class="w-4 h-4 rounded-full border-2 transition-all duration-300"
                                          style="{{ $isCompleted ? 'background-color: ' . $cat['color'] . '; border-color: ' . $cat['color'] : 'border-color: #E5E7EB; background-color: white' }}"
                                          title="{{ $ref }}">
                                     </div>
@@ -124,7 +124,7 @@
             </div>
 
             {{-- COLUNA DIREITA (1/3): Espaço para conteúdo futuro --}}
-            <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 flex flex-col items-center justify-center text-center">
+            <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-8flex flex-col items-center justify-center text-center">
                 <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
