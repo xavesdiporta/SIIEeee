@@ -31,9 +31,6 @@ class UserResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('password')
                     ->required(),
-                Forms\Components\TextInput::make('cargo')
-                    ->label('Cargo')
-                    ->maxLength(255),
                 Forms\Components\Toggle::make('is_admin'),
             ])
             ->columns(1);
