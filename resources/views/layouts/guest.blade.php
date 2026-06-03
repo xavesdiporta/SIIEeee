@@ -1,75 +1,97 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+<x-guest-layout>
+    <div class="w-full max-w-md mx-auto">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
-
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireStyles
-</head>
-<body class="font-sans antialiased" style="background-color: oklch(98% 0.016 73.684); color: oklch(40% 0.123 38.172);">
-
-<div class="min-h-screen flex">
-
-    {{-- Coluna esquerda: Carousel --}}
-    <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-         x-data="{ current: 0, total: 3 }"
-         x-init="setInterval(() => current = (current + 1) % total, 5000)">
-
-        {{-- Slide 1 --}}
-        <div class="absolute inset-0 transition-opacity duration-1000"
-             x-bind:class="current === 0 ? 'opacity-100' : 'opacity-0'">
-            <img src="/images/down.jpg" alt="Foto 1" class="w-full h-full object-cover" />
+        {{-- Logo e título --}}
+        <div class="flex flex-col items-center mb-10">
+            <img src="/images/logo-banana.jpg" alt="Agrupamento 542"
+                 class="w-20 h-20 rounded-full object-cover shadow-md mb-4" />
+            <h2 class="text-3xl font-bold" style="color: oklch(22.45% 0.075 37.85);">{{ __('Bem-vindo') }}</h2>
+            <p class="mt-1 text-sm" style="color: oklch(55% 0.08 38.172);">{{ __('Inicia sessão para acederes ao sistema.') }}</p>
         </div>
 
-        {{-- Slide 2 --}}
-        <div class="absolute inset-0 transition-opacity duration-1000"
-             x-bind:class="current === 1 ? 'opacity-100' : 'opacity-0'">
-            <img src="/images/jota-joti-2024.jpg" alt="Foto 2" class="w-full h-full object-cover" />
-        </div>
+        <x-validation-errors class="mb-4" />
 
-        {{-- Slide 3 --}}
-        <div class="absolute inset-0 transition-opacity duration-1000"
-             x-bind:class="current === 2 ? 'opacity-100' : 'opacity-0'">
-            <img src="/images/agru.jpg" alt="Foto 3" class="w-full h-full object-cover" />
+        @session('status')
+        <div class="mb-4 font-medium text-sm" style="color: oklch(43% 0.095 166.913);">
+            {{ $value }}
         </div>
+        @endsession
 
-        {{-- Overlay --}}
-        <div class="absolute inset-0 bg-black/40"></div>
+        <form method="POST" action="{{ route('login') }}" class="space-y-5">
+            @csrf
 
-        {{-- Texto sobre o carousel --}}
-        <div class="absolute inset-0 flex flex-col items-center justify-center z-10 text-white px-10 text-center">
-            <img src="/images/logo-banana.jpg" alt="Logo" class="w-24 h-24 rounded-full shadow-xl mb-4 object-cover" />
-            <h1 class="text-3xl font-bold drop-shadow-lg">{{ __('Corpo Nacional de Escutas') }}</h1>
-            <p class="mt-2 text-lg text-white/80 drop-shadow">{{ __('Agrupamento 542 · Entroncamento') }}</p>
-        </div>
+            {{-- Email --}}
+            <div>
+                <label for="email" class="block text-sm font-medium mb-1.5"
+                       style="color: oklch(40% 0.123 38.172);">
+                    {{ __('Email') }}
+                </label>
+                <input id="email"
+                       type="email"
+                       name="email"
+                       value="{{ old('email') }}"
+                       required autofocus autocomplete="username"
+                       class="w-full rounded-lg px-4 py-3 text-base outline-none transition-all"
+                       style="background-color: oklch(96% 0.02 75.164);
+                              color: oklch(30% 0.08 38.172);
+                              border: 1.5px solid oklch(88% 0.05 70.697);"
+                       onfocus="this.style.border='1.5px solid oklch(46.44% 0.111 37.85)'; this.style.boxShadow='0 0 0 3px oklch(46.44% 0.111 37.85 / 0.15)'"
+                       onblur="this.style.border='1.5px solid oklch(88% 0.05 70.697)'; this.style.boxShadow='none'" />
+            </div>
 
-        {{-- Indicadores --}}
-        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            <template x-for="i in total" :key="i">
-                <button
-                    x-on:click="current = i - 1"
-                    x-bind:class="current === i - 1 ? 'bg-white w-6' : 'bg-white/40 w-2'"
-                    class="h-2 rounded-full transition-all duration-300"
-                ></button>
-            </template>
-        </div>
+            {{-- Password --}}
+            <div>
+                <label for="password" class="block text-sm font-medium mb-1.5"
+                       style="color: oklch(40% 0.123 38.172);">
+                    {{ __('Password') }}
+                </label>
+                <input id="password"
+                       type="password"
+                       name="password"
+                       required autocomplete="current-password"
+                       class="w-full rounded-lg px-4 py-3 text-base outline-none transition-all"
+                       style="background-color: oklch(96% 0.02 75.164);
+                              color: oklch(30% 0.08 38.172);
+                              border: 1.5px solid oklch(88% 0.05 70.697);"
+                       onfocus="this.style.border='1.5px solid oklch(46.44% 0.111 37.85)'; this.style.boxShadow='0 0 0 3px oklch(46.44% 0.111 37.85 / 0.15)'"
+                       onblur="this.style.border='1.5px solid oklch(88% 0.05 70.697)'; this.style.boxShadow='none'" />
+            </div>
+
+            {{-- Remember + Forgot --}}
+            <div class="flex items-center justify-between pt-1">
+                <label for="remember_me" class="flex items-center gap-2 cursor-pointer">
+                    <input id="remember_me" type="checkbox" name="remember"
+                           class="rounded"
+                           style="accent-color: oklch(22.45% 0.075 37.85); width: 1rem; height: 1rem;" />
+                    <span class="text-sm" style="color: oklch(50% 0.07 38.172);">{{ __('Lembrar-me') }}</span>
+                </label>
+
+                @if (Route::has('password.request'))
+                    <a href="{{ route('password.request') }}"
+                       class="text-sm transition"
+                       style="color: oklch(46.44% 0.111 37.85);"
+                       onmouseover="this.style.color='oklch(22.45% 0.075 37.85)'"
+                       onmouseout="this.style.color='oklch(46.44% 0.111 37.85)'">
+                        {{ __('Esqueceste a password?') }}
+                    </a>
+                @endif
+            </div>
+
+            {{-- Submit --}}
+            <button type="submit"
+                    class="w-full py-3 rounded-lg text-base font-semibold transition-all hover:opacity-90 active:scale-[0.99] mt-2"
+                    style="background-color: oklch(22.45% 0.075 37.85);
+                           color: oklch(92% 0.05 70.697);
+                           letter-spacing: 0.01em;">
+                {{ __('Entrar') }}
+            </button>
+
+        </form>
+
+        {{-- Footer --}}
+        <p class="mt-10 text-center text-xs" style="color: oklch(65% 0.05 38.172);">
+            {{ __('Agrupamento 542 · Entroncamento · CNE') }}
+        </p>
+
     </div>
-
-    {{-- Coluna direita: Form --}}
-    <div class="w-full lg:w-1/2 flex flex-col items-center justify-center px-8 py-12"
-         style="background-color: oklch(98% 0.016 73.684);">
-        {{ $slot }}
-    </div>
-
-</div>
-
-@livewireScripts
-</body>
-</html>
+</x-guest-layout>
