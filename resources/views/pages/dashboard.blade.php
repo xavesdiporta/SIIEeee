@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="py-8 px-4 sm:px-6 lg:px-8">
+    <div class="py-8 px-4 sm:px-6 lg:px-8 h-[calc(100vh-8rem)]">
 
         @php
             $categories = [
