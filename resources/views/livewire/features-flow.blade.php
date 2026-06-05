@@ -38,9 +38,9 @@
         <div class="mt-8 grid gap-8 lg:mt-20 lg:grid-cols-2 lg:gap-12">
             <div>
                 <div class="badge badge-success text-white">{{ __('10 – 14 anos') }}</div>
-                <h3 class="mt-2 text-3xl font-semibold">{{ __('Escuteiros') }}</h3>
+                <h3 class="mt-2 text-3xl font-semibold">{{ __('Exploradores') }}</h3>
                 <p class="mt-2 text-base">
-                    {{ __('A secção dos Escuteiros é onde o método escutista se desenvolve plenamente. Acampamentos, trilhos, técnicas de campo e serviço à comunidade são o coração desta secção.') }}
+                    {{ __('A secção dos Exploradores é onde o método escutista se desenvolve plenamente. Acampamentos, trilhos, técnicas de campo e serviço à comunidade são o coração desta secção.') }}
                 </p>
                 <ul class="mt-4 list-inside list-disc text-base">
                     <li>{{ __('Acampamentos e trilhos') }}</li>
@@ -52,7 +52,7 @@
             <div class="order-first lg:order-last">
                 <div class="overflow-hidden rounded-lg bg-base-200 shadow-md transition-all hover:shadow-xl">
                     {{-- Substitui pelo caminho da tua foto dos Escuteiros --}}
-                    <img alt="Escuteiros" class="overflow-hidden rounded-ss-lg w-full object-cover" src="/images/seccoes/escuteiros.jpg" />
+                    <img alt="Exploradores" class="overflow-hidden rounded-ss-lg w-full object-cover" src="/images/seccoes/escuteiros.jpg" />
                 </div>
             </div>
         </div>
@@ -61,7 +61,7 @@
         <div class="mt-8 grid gap-8 lg:mt-20 lg:grid-cols-2 lg:gap-12">
             <div class="overflow-hidden rounded-lg bg-base-200 shadow-md transition-all hover:shadow-xl">
                 {{-- Substitui pelo caminho da tua foto dos Pioneiros --}}
-                <img alt="Pioneiros" class="overflow-hidden rounded-ss-lg w-full object-cover" src="/images/seccoes/pioneiros.jpg" />
+                <img alt="Pioneiros" class="overflow-hidden rounded-ss-lg w-full object-cover" src="/images/pios.jpeg" />
             </div>
             <div class="lg:mt-8">
                 <div class="badge badge-info text-white">{{ __('14 – 18 anos') }}</div>
