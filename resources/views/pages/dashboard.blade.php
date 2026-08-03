@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-[100rem] mx-auto py-8 px-6 sm:px-8 lg:px-10">
 
         @php
             $categories = [
@@ -31,14 +31,12 @@
                 fn ($c) => collect($c['refs'])->mapWithKeys(fn ($r) => [$r => $c])
             );
 
-            // geometria do anel de progresso (segmentos Comunidade / Partida / Serviço)
+            // geometria do anel de progresso (uma única cor, preenche conforme % real)
             $circumference = 2 * M_PI * 62;
-            $segments = [
-                ['value' => 116, 'color' => '#7F1D1D'],
-                ['value' => 116, 'color' => '#DC2626'],
-                ['value' => 116, 'color' => '#FECACA'],
-            ];
-            $offsetAcc = 0;
+            $progressLength = $circumference * ($percent / 100);
+
+            // marcas de fase (Comunidade / Partida / Serviço), fixas na estrutura da Rota
+            $phaseBoundaries = [116, 232]; // graus acumulados onde cada fase termina
         @endphp
 
         {{-- LINHA DE TOPO: Anel de progresso + Dados do colaborador --}}
@@ -48,41 +46,47 @@
             <div class="flex flex-col items-center shrink-0">
                 <div class="relative w-48 h-48">
                     <svg viewBox="0 0 150 150" class="w-full h-full -rotate-90">
+                        {{-- pista de fundo --}}
                         <circle cx="75" cy="75" r="62" fill="none" stroke="#F2ECE7" stroke-width="14" />
-                        @foreach($segments as $seg)
+
+                        {{-- progresso real, cor única --}}
+                        <circle cx="75" cy="75" r="62" fill="none" stroke="#B5432A" stroke-width="14"
+                                stroke-linecap="round"
+                                stroke-dasharray="{{ $progressLength }} {{ $circumference }}" />
+
+                        {{-- marcas das 3 fases da Rota (Comunidade / Partida / Serviço) --}}
+                        @foreach($phaseBoundaries as $deg)
                             @php
-                                $dash = $circumference * ($seg['value'] / 360);
-                                $gap = $circumference - $dash;
+                                $rad = deg2rad($deg);
+                                $x1 = 75 + 55 * cos($rad); $y1 = 75 + 55 * sin($rad);
+                                $x2 = 75 + 69 * cos($rad); $y2 = 75 + 69 * sin($rad);
                             @endphp
-                            <circle cx="75" cy="75" r="62" fill="none" stroke="{{ $seg['color'] }}" stroke-width="14"
-                                    stroke-dasharray="{{ $dash }} {{ $gap }}"
-                                    stroke-dashoffset="{{ -$offsetAcc }}" />
-                            @php $offsetAcc += $circumference * ($seg['value'] / 360) + ($circumference * (4/360)); @endphp
+                            <line x1="{{ $x1 }}" y1="{{ $y1 }}" x2="{{ $x2 }}" y2="{{ $y2 }}" stroke="#FFFFFF" stroke-width="3" />
                         @endforeach
                     </svg>
                     <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="w-28 h-28 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden">
+                        <div class="w-28 h-28 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden relative">
                             <img src="{{ asset('images/caminho.png') }}" alt="" class="w-full h-full object-cover">
                         </div>
                     </div>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="top: 58%">
-                        <span class="text-lg font-bold text-[#3E2D1B]">{{ $percent }}%</span>
-                        <span class="text-[10px] text-[#776246] uppercase tracking-wide">da Rota</span>
+                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white border border-[#E4D5C3] rounded-full px-3 py-0.5 flex items-baseline gap-1 shadow-sm">
+                        <span class="text-sm font-bold text-[#3E2D1B]">{{ $percent }}%</span>
+                        <span class="text-[9px] text-[#776246] uppercase tracking-wide">da Rota</span>
                     </div>
                 </div>
 
-                {{-- Legenda --}}
-                <div class="flex gap-4 mt-4">
+                {{-- Legenda: as 3 fases marcadas no anel --}}
+                <div class="flex gap-4 mt-5">
                     <div class="flex items-center gap-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full bg-[#7F1D1D]"></div>
+                        <div class="w-2.5 h-2.5 rounded-full" style="background-color:#B5432A"></div>
                         <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">Comunidade</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full bg-[#DC2626]"></div>
+                        <div class="w-2.5 h-2.5 rounded-full border-2 border-[#B5432A]"></div>
                         <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">Partida</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full bg-[#FECACA]"></div>
+                        <div class="w-2.5 h-2.5 rounded-full border-2 border-[#E4D5C3]"></div>
                         <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">Serviço</span>
                     </div>
                 </div>
@@ -157,7 +161,7 @@
                         <div class="flex flex-col items-center text-center gap-2">
                             {{-- crachá hexagonal com contagem --}}
                             <div class="w-14 h-14 flex items-center justify-center font-bold text-sm shadow-sm"
-                                 style="background-color: {{ $cat['color'] }}; color: {{ $cat['colorSoft'] }}; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 25%, 0% 75%);">
+                                 style="background-color: {{ $cat['color'] }}; color: {{ $cat['colorSoft'] }}; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);">
                                 {{ $doneInCat }}/{{ $totalInCat }}
                             </div>
                             <span class="text-sm font-semibold text-[#3E2D1B]">{{ $cat['name'] }}</span>
