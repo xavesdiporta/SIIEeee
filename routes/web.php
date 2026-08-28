@@ -87,4 +87,10 @@ Route::middleware([
     });
 
     Route::get('/allcalendar', [DashboardController::class, 'allcalendar'])->name('allcalendar');
+
+    // Notas de Progresso do Clã (por agora sem persistência em BD — próximo passo)
+    Route::prefix('progress-notes')->name('progress-notes.')->group(function () {
+        Route::get('/create/{reference?}', [ProgressNoteController::class, 'create'])->name('create');
+        Route::post('/', [ProgressNoteController::class, 'store'])->name('store');
+    });
 });
