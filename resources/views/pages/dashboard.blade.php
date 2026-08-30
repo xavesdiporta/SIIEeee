@@ -123,12 +123,12 @@
         </div>
 
         {{-- LINHA DO MEIO: Crachás por dimensão + Calendário --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6 items-start">
 
             <div class="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
                 <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Crachás por Dimensão</h3>
 
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                <div class="grid grid-cols-2 gap-6">
                     @foreach($categories as $cat)
                         @php
                             $doneInCat = collect($cat['refs'])->intersect($completedRefs)->count();
@@ -156,7 +156,7 @@
             </div>
 
             {{-- Calendário nativo (FullCalendar), alimentado pelas datas das Atas via /api/events --}}
-            <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
+            <div class="lg:col-span-3 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
                 <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-4">Calendário do Clã</h3>
                 <div id="calendar"></div>
             </div>
