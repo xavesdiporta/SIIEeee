@@ -36,4 +36,19 @@ class AtaController extends Controller
             ->route('dashboard')
             ->with('status', 'Ata adicionada com sucesso.');
     }
+
+    /**
+     * Devolve as atas no formato que o FullCalendar espera (GET /api/events).
+     * Cada ata vira um evento no dia em que a reunião aconteceu.
+     */
+    public function events()
+    {
+        return Ata::orderBy('dia')->get()->map(fn (Ata $ata) => [
+            'id' => $ata->id,
+            'title' => $ata->nome,
+            'start' => $ata->dia->toDateString(),
+            'allDay' => true,
+            'url' => asset($ata->ficheiro),
+        ]);
+    }
 }

@@ -122,8 +122,8 @@
             </div>
         </div>
 
-        {{-- LINHA DO MEIO: Crachás por dimensão + Últimas Notas --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {{-- LINHA DO MEIO: Crachás por dimensão + Calendário --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
 
             <div class="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
                 <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Crachás por Dimensão</h3>
@@ -155,11 +155,11 @@
                 </div>
             </div>
 
-            <x-google-calendar
-                calendar-id="cla542entroncamento@gmail.com"
-                title="Calendário do Clã"
-                :height="420"
-            />
+            {{-- Calendário nativo (FullCalendar), alimentado pelas datas das Atas via /api/events --}}
+            <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
+                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-4">Calendário do Clã</h3>
+                <div id="calendar"></div>
+            </div>
         </div>
 
         {{-- LINHA DE BAIXO: Atas do Agrupamento (nova, área horizontal) --}}
@@ -226,7 +226,7 @@
                                 ->map(fn ($w) => mb_substr($w, 0, 1))
                                 ->take(2)
                                 ->implode('');
-                            $avatarPalette = ['#16a34a', '#dc2626', '#2563eb', '#9333ea', '#f97316', '#B5432A'];
+                            $avatarPalette = ['#3E2D1B', '#776246', '#B5432A', '#8A6D3B', '#5C7A5C', '#A87C4F'];
                             $avatarColor = $avatarPalette[crc32($authorName) % count($avatarPalette)];
                         @endphp
                         <tr class="group hover:bg-[#FAF7F5] transition-colors">
@@ -239,12 +239,12 @@
                                     </div>
                                     <div class="min-w-0">
                                         <p class="text-sm font-medium text-[#3E2D1B] truncate">{{ $ata->nome }}</p>
-                                        <p class="text-xs text-[#B0977A] sm:hidden">{{ \Illuminate\Support\Carbon::parse($ata->dia)->translatedFormat('d M Y') }}</p>
+                                        <p class="text-xs text-[#B0977A] sm:hidden">{{ \Illuminate\Support\Carbon::parse($ata->dia)->locale('pt')->translatedFormat('d M Y') }}</p>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-2 py-3 border-b border-[#F2ECE7] hidden sm:table-cell">
-                                <span class="text-sm text-[#3E2D1B]">{{ \Illuminate\Support\Carbon::parse($ata->dia)->translatedFormat('d \d\e F \d\e Y') }}</span>
+                                <span class="text-sm text-[#3E2D1B]">{{ \Illuminate\Support\Carbon::parse($ata->dia)->locale('pt')->translatedFormat('d \d\e F \d\e Y') }}</span>
                             </td>
                             <td class="px-2 py-3 border-b border-[#F2ECE7] hidden md:table-cell">
                                 <div class="flex items-center gap-2">

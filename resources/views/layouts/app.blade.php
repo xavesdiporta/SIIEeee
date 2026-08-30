@@ -18,29 +18,84 @@
     @livewireStyles
     <style>
         [x-cloak] { display: none !important; }
+
         #calendar {
             max-width: 100%;
-            background-color: #3E2D1B;
-            padding: 1rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .fc-toolbar-title {
-            @apply text-xl font-semibold text-gray-800;
+        #calendar .fc {
+            --fc-border-color: #E4D5C3;
+            --fc-today-bg-color: #FCEBE6;
+            --fc-neutral-bg-color: #FAF7F5;
+            font-family: inherit;
         }
 
-        .fc-daygrid-event {
-            background-color: #776246 !important;
+        #calendar .fc-toolbar-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #3E2D1B;
+            text-transform: capitalize;
+        }
+
+        #calendar .fc-col-header-cell {
+            background-color: #FAF7F5;
+            padding: 0.5rem 0;
+        }
+
+        #calendar .fc-col-header-cell-cushion {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #776246;
+        }
+
+        #calendar .fc-daygrid-day-number {
+            font-size: 0.8rem;
+            color: #3E2D1B;
+            padding: 0.4rem;
+        }
+
+        #calendar .fc-day-today .fc-daygrid-day-number {
+            background-color: #B5432A;
+            color: #fff;
+            border-radius: 9999px;
+            width: 1.6rem;
+            height: 1.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0.2rem;
+        }
+
+        #calendar .fc-daygrid-day:hover {
+            background-color: #FAF7F5;
+            cursor: pointer;
+        }
+
+        #calendar .fc-daygrid-event {
+            background-color: #B5432A;
             border: none;
             border-radius: 0.375rem;
-            font-size: 0.875rem;
-            padding: 2px 4px;
+            font-size: 0.75rem;
+            padding: 1px 6px;
             color: white;
         }
 
-        .fc-daygrid-day:hover {
-            background-color: #3E2D1B;
+        #calendar .fc-button {
+            background-color: #FAF7F5 !important;
+            border: 1px solid #E4D5C3 !important;
+            color: #776246 !important;
+            box-shadow: none !important;
+        }
+
+        #calendar .fc-button:hover {
+            background-color: #F2ECE7 !important;
+        }
+
+        #calendar .fc-button-active {
+            background-color: #3E2D1B !important;
+            color: #fff !important;
         }
     </style>
 </head>
@@ -94,19 +149,34 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const calendarEl = document.getElementById('calendar');
+        if (!calendarEl) return; // esta página não tem calendário, não faz sentido continuar
 
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
-            locale: 'pt', // FullCalendar suporta português
-            selectable: true,
-            events: '/api/events', // Rota Laravel para retornar os eventos
-            dateClick: function(info) {
-                // Ex: Redireciona com query string para abrir o modal
-                window.location.href = "{{ route('dashboard') }}?modal=add-link&date=" + info.dateStr;
+            locale: 'pt',
+            height: 'auto',
+            headerToolbar: {
+                left: 'prev,next',
+                center: 'title',
+                right: 'dayGridMonth,listMonth',
             },
-            eventClick: function(info) {
-                alert('Evento: ' + info.event.title);
-            }
+            selectable: true,
+            events: '/api/events',
+            dateClick: function (info) {
+                // Se existir o formulário de Atas na página, pré-preenche o dia e leva o utilizador até lá
+                const diaInput = document.getElementById('dia');
+                if (diaInput) {
+                    diaInput.value = info.dateStr;
+                    diaInput.closest('form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    diaInput.focus();
+                }
+            },
+            eventClick: function (info) {
+                if (info.event.url) {
+                    window.open(info.event.url, '_blank');
+                    info.jsEvent.preventDefault();
+                }
+            },
         });
 
         calendar.render();

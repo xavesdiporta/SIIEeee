@@ -91,4 +91,7 @@ Route::middleware([
 
     // Atas do Agrupamento
     Route::post('/atas', [AtaController::class, 'store'])->name('atas.store');
+
+    // Eventos para o calendário (FullCalendar consome isto via fetch)
+    Route::get('/api/events', [AtaController::class, 'events'])->name('api.events');
 });
