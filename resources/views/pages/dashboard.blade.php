@@ -35,7 +35,7 @@
             $phaseBoundaries = [116, 232];
 
             // Atas do agrupamento (novo)
-            $atas = \App\Models\Ata::latest('dia')->get();
+            $atas = \App\Models\Ata::with('user')->latest('dia')->get();
         @endphp
 
         {{-- LINHA DE TOPO: Anel de progresso + Dados do colaborador --}}
@@ -197,7 +197,10 @@
         {{-- LINHA DE BAIXO: Atas do Agrupamento (nova, área horizontal) --}}
         <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Atas</h3>
+                <div class="flex items-center gap-2.5">
+                    <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Atas</h3>
+                    <span class="text-xs font-semibold text-[#776246] bg-[#FAF7F5] border border-[#E4D5C3] rounded-full px-2 py-0.5">{{ $atas->count() }}</span>
+                </div>
             </div>
 
             @if (session('status'))
@@ -235,27 +238,82 @@
                 </button>
             </form>
 
-            {{-- Lista de atas, em faixas horizontais --}}
-            <div class="flex flex-col divide-y divide-[#F2ECE7]">
-                @forelse($atas as $ata)
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 py-3">
-                        <div class="w-9 h-9 shrink-0 rounded-lg bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-[#3E2D1B] truncate">{{ $ata->nome }}</p>
-                            <p class="text-xs text-[#B0977A]">{{ \Illuminate\Support\Carbon::parse($ata->dia)->translatedFormat('d \d\e F \d\e Y') }}</p>
-                        </div>
-                        <a href="{{ asset($ata->ficheiro) }}" target="_blank"
-                           class="text-xs font-semibold px-3 py-1.5 rounded-full border border-[#E4D5C3] text-[#776246] hover:bg-[#FAF7F5] transition-colors shrink-0">
-                            Abrir PDF
-                        </a>
-                    </div>
-                @empty
-                    <p class="text-sm text-[#776246] py-6 text-center">Ainda não há atas registadas.</p>
-                @endforelse
+            {{-- Lista de atas --}}
+            <div class="overflow-x-auto -mx-2">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                    <tr class="text-xs font-bold text-[#776246] uppercase tracking-wider">
+                        <th class="px-2 pb-3 border-b border-[#E4D5C3]">Ata</th>
+                        <th class="px-2 pb-3 border-b border-[#E4D5C3] hidden sm:table-cell">Data</th>
+                        <th class="px-2 pb-3 border-b border-[#E4D5C3] hidden md:table-cell">Adicionado por</th>
+                        <th class="px-2 pb-3 border-b border-[#E4D5C3] text-right">Ficheiro</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($atas as $ata)
+                        @php
+                            $authorName = $ata->user->name ?? 'Utilizador removido';
+                            $initials = collect(explode(' ', trim($authorName)))
+                                ->filter()
+                                ->map(fn ($w) => mb_substr($w, 0, 1))
+                                ->take(2)
+                                ->implode('');
+                            $avatarPalette = ['#16a34a', '#dc2626', '#2563eb', '#9333ea', '#f97316', '#B5432A'];
+                            $avatarColor = $avatarPalette[crc32($authorName) % count($avatarPalette)];
+                        @endphp
+                        <tr class="group hover:bg-[#FAF7F5] transition-colors">
+                            <td class="px-2 py-3 border-b border-[#F2ECE7]">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 shrink-0 rounded-lg bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center group-hover:bg-white transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-[#3E2D1B] truncate">{{ $ata->nome }}</p>
+                                        <p class="text-xs text-[#B0977A] sm:hidden">{{ \Illuminate\Support\Carbon::parse($ata->dia)->translatedFormat('d M Y') }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-2 py-3 border-b border-[#F2ECE7] hidden sm:table-cell">
+                                <span class="text-sm text-[#3E2D1B]">{{ \Illuminate\Support\Carbon::parse($ata->dia)->translatedFormat('d \d\e F \d\e Y') }}</span>
+                            </td>
+                            <td class="px-2 py-3 border-b border-[#F2ECE7] hidden md:table-cell">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                                         style="background-color: {{ $avatarColor }};">
+                                        {{ strtoupper($initials) ?: '?' }}
+                                    </div>
+                                    <span class="text-sm text-[#3E2D1B]">{{ $authorName }}</span>
+                                </div>
+                            </td>
+                            <td class="px-2 py-3 border-b border-[#F2ECE7] text-right">
+                                <a href="{{ asset($ata->ficheiro) }}" target="_blank"
+                                   class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-[#E4D5C3] text-[#776246] hover:bg-white hover:border-[#B5432A] hover:text-[#B5432A] transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+                                    </svg>
+                                    PDF
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-10 text-center">
+                                <div class="flex flex-col items-center gap-2">
+                                    <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <p class="text-sm font-medium text-[#776246]">Ainda não há atas registadas</p>
+                                    <p class="text-xs text-[#B0977A]">A primeira que adicionares aparece aqui.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
