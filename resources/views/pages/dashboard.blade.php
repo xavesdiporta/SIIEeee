@@ -20,16 +20,6 @@
             $totalDone = count($completedRefs);
             $percent = $totalRefs > 0 ? round(($totalDone / $totalRefs) * 100) : 0;
 
-            $recentNotes = \App\Models\ProgressNote::where('user_id', Auth::id())
-                ->where('status', 'approved')
-                ->latest('updated_at')
-                ->take(5)
-                ->get();
-
-            $refToCategory = collect($categories)->flatMap(
-                fn ($c) => collect($c['refs'])->mapWithKeys(fn ($r) => [$r => $c])
-            );
-
             $circumference = 2 * M_PI * 62;
             $progressLength = $circumference * ($percent / 100);
             $phaseBoundaries = [116, 232];
@@ -165,33 +155,11 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 flex flex-col">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Últimas Notas</h3>
-
-                @forelse($recentNotes as $note)
-                    @php $cat = $refToCategory[$note->reference] ?? null; @endphp
-                    <div class="flex items-start gap-3 {{ !$loop->last ? 'mb-4 pb-4 border-b border-[#F2ECE7]' : '' }}">
-                        <div class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-xs font-bold"
-                             style="background-color: {{ $cat['color'] ?? '#776246' }}; color: {{ $cat['colorSoft'] ?? '#FAF7F5' }};">
-                            {{ $note->reference }}
-                        </div>
-                        <div class="min-w-0">
-                            <p class="text-sm font-medium text-[#3E2D1B] truncate">{{ $cat['name'] ?? 'Progresso' }} aprovado</p>
-                            <p class="text-xs text-[#B0977A]">{{ $note->updated_at->diffForHumans() }}</p>
-                        </div>
-                    </div>
-                @empty
-                    <div class="flex-1 flex flex-col items-center justify-center text-center py-8">
-                        <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                        </div>
-                        <p class="text-sm font-medium text-[#776246]">{{ __('Ainda sem notas aprovadas') }}</p>
-                        <p class="text-xs text-[#B0977A] mt-1">{{ __('Assim que o teu Chefe aprovar a primeira, aparece aqui.') }}</p>
-                    </div>
-                @endforelse
-            </div>
+            <x-google-calendar
+                calendar-id="cla542entroncamento@gmail.com"
+                title="Calendário do Clã"
+                :height="420"
+            />
         </div>
 
         {{-- LINHA DE BAIXO: Atas do Agrupamento (nova, área horizontal) --}}
