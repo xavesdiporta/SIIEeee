@@ -9,6 +9,7 @@ use App\Http\Controllers\OgImageController;
 use App\Http\Controllers\Payments\LemonSqueezyController;
 use App\Http\Controllers\Payments\PaddleController;
 use App\Http\Controllers\Payments\StripeController;
+use App\Http\Controllers\AtaController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\Subscribed;
 use Illuminate\Support\Facades\Route;
@@ -88,9 +89,6 @@ Route::middleware([
 
     Route::get('/allcalendar', [DashboardController::class, 'allcalendar'])->name('allcalendar');
 
-    // Notas de Progresso do Clã (por agora sem persistência em BD — próximo passo)
-    Route::prefix('progress-notes')->name('progress-notes.')->group(function () {
-        Route::get('/create/{reference?}', [ProgressNoteController::class, 'create'])->name('create');
-        Route::post('/', [ProgressNoteController::class, 'store'])->name('store');
-    });
+    // Atas do Agrupamento
+    Route::post('/atas', [AtaController::class, 'store'])->name('atas.store');
 });
