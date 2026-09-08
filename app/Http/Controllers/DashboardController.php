@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Services\GoogleCalendarService;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
