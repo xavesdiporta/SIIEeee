@@ -61,6 +61,11 @@ return [
         ],
     ],
 
+    'google_calendar' => [
+        'api_key'     => env('GOOGLE_CALENDAR_API_KEY'),
+        'calendar_id' => env('GOOGLE_CALENDAR_ID'),
+    ],
+
     'github' => [
         'client_id' => env('GITHUB_CLIENT_ID'),
         'client_secret' => env('GITHUB_CLIENT_SECRET'),

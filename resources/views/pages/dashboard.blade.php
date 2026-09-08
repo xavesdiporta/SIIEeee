@@ -1,14 +1,14 @@
 <x-app-layout>
-    <div class="max-w-[100rem] mx-auto py-8 px-6 sm:px-8 lg:px-10">
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pb-16">
 
         @php
             $categories = [
-                ['label' => 'F', 'name' => 'Físico', 'color' => '#16a34a', 'colorSoft' => '#EAF3DE', 'colorText' => '#173404', 'refs' => ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']],
-                ['label' => 'A', 'name' => 'Afectivo', 'color' => '#dc2626', 'colorSoft' => '#FCEBEB', 'colorText' => '#501313', 'refs' => ['A1', 'A2', 'A3', 'A4', 'A5', 'A6']],
-                ['label' => 'C', 'name' => 'Carácter', 'color' => '#2563eb', 'colorSoft' => '#E6F1FB', 'colorText' => '#042C53', 'refs' => ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']],
-                ['label' => 'E', 'name' => 'Espiritual', 'color' => '#9333ea', 'colorSoft' => '#EEEDFE', 'colorText' => '#26215C', 'refs' => ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8']],
-                ['label' => 'I', 'name' => 'Intelectual', 'color' => '#f97316', 'colorSoft' => '#FAEEDA', 'colorText' => '#412402', 'refs' => ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7']],
-                ['label' => 'S', 'name' => 'Social', 'color' => '#eab308', 'colorSoft' => '#FAEEDA', 'colorText' => '#412402', 'refs' => ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']],
+                ['label' => 'F', 'name' => 'Físico', 'color' => '#16a34a', 'refs' => ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']],
+                ['label' => 'A', 'name' => 'Afectivo', 'color' => '#dc2626', 'refs' => ['A1', 'A2', 'A3', 'A4', 'A5', 'A6']],
+                ['label' => 'C', 'name' => 'Carácter', 'color' => '#2563eb', 'refs' => ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']],
+                ['label' => 'E', 'name' => 'Espiritual', 'color' => '#9333ea', 'refs' => ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8']],
+                ['label' => 'I', 'name' => 'Intelectual', 'color' => '#f97316', 'refs' => ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7']],
+                ['label' => 'S', 'name' => 'Social', 'color' => '#eab308', 'refs' => ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']],
             ];
 
             $completedRefs = \App\Models\ProgressNote::where('user_id', Auth::id())
@@ -16,71 +16,97 @@
                 ->pluck('reference')
                 ->toArray();
 
-            $totalRefs = collect($categories)->sum(fn ($c) => count($c['refs']));
-            $totalDone = count($completedRefs);
-            $percent = $totalRefs > 0 ? round(($totalDone / $totalRefs) * 100) : 0;
+            // Totais gerais das 6 dimensões — usados no cartão "Detalhe por Dimensão".
+            $totalRefsAll = collect($categories)->sum(fn ($cat) => count($cat['refs']));
+            $completedCountAll = count($completedRefs);
 
-            $circumference = 2 * M_PI * 62;
-            $progressLength = $circumference * ($percent / 100);
-            $phaseBoundaries = [116, 232];
+            // Percentagens dos 3 pilares do Sistema de Progresso (Comunidade / Partida / Serviço).
+            // TODO: substitui isto por valores reais vindos do Controller, ex.:
+            // return view('progresso.dashboard', ['comunidadePercent' => $x, 'partidaPercent' => $y, 'servicoPercent' => $z]);
+            $comunidadePercent = $comunidadePercent ?? 0;
+            $partidaPercent    = $partidaPercent ?? 0;
+            $servicoPercent    = $servicoPercent ?? 0;
+            $overallPillarPercent = round(($comunidadePercent + $partidaPercent + $servicoPercent) / 3);
 
-            // Atas do agrupamento (novo)
-            $atas = \App\Models\Ata::with('user')->latest('dia')->get();
+            $gap = 4;
+            $segment = (360 - ($gap * 3)) / 3;
+            $pilares = [
+                ['label' => 'Comunidade', 'percent' => $comunidadePercent, 'color' => '#7F1D1D'],
+                ['label' => 'Partida',    'percent' => $partidaPercent,    'color' => '#DC2626'],
+                ['label' => 'Serviço',    'percent' => $servicoPercent,    'color' => '#FCA5A5'],
+            ];
+            $stops = [];
+            $cursor = 0;
+            foreach ($pilares as $p) {
+                $filled = ($p['percent'] / 100) * $segment;
+                $stops[] = "{$p['color']} {$cursor}deg " . ($cursor + $filled) . 'deg';
+                $stops[] = '#F0E9E1 ' . ($cursor + $filled) . 'deg ' . ($cursor + $segment) . 'deg';
+                $cursor += $segment;
+                $stops[] = "transparent {$cursor}deg " . ($cursor + $gap) . 'deg';
+                $cursor += $gap;
+            }
+            $ringGradient = 'conic-gradient(from -90deg, ' . implode(', ', $stops) . ')';
+
+            // Eventos do calendário do Clã — vêm do Controller via GoogleCalendarService.
+            // Se ainda não estiverem a ser passados, a secção mostra um estado vazio em vez de rebentar.
+            $events = $events ?? [];
+            $calendarUrl = $calendarUrl ?? null;
+            $mesesAbrev = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago', '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'];
         @endphp
 
-        {{-- LINHA DE TOPO: Anel de progresso + Dados do colaborador --}}
+        {{-- CABEÇALHO --}}
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-[#3E2D1B]">O meu Sistema de Progresso</h1>
+            <p class="text-sm text-[#776246] mt-1">Acompanha a tua caminhada no Clã, pilar a pilar e dimensão a dimensão.</p>
+        </div>
+
+        {{-- LINHA DE TOPO: Círculo + Dados do utilizador --}}
         <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-8 mb-6 flex flex-col md:flex-row items-center gap-8">
 
+            {{-- Círculo de Progresso --}}
             <div class="flex flex-col items-center shrink-0">
-                <div class="relative w-48 h-48">
-                    <svg viewBox="0 0 150 150" class="w-full h-full -rotate-90">
-                        <circle cx="75" cy="75" r="62" fill="none" stroke="#F2ECE7" stroke-width="14" />
-                        <circle cx="75" cy="75" r="62" fill="none" stroke="#B5432A" stroke-width="14"
-                                stroke-linecap="round"
-                                stroke-dasharray="{{ $progressLength }} {{ $circumference }}" />
-                        @foreach($phaseBoundaries as $deg)
-                            @php
-                                $rad = deg2rad($deg);
-                                $x1 = 75 + 55 * cos($rad); $y1 = 75 + 55 * sin($rad);
-                                $x2 = 75 + 69 * cos($rad); $y2 = 75 + 69 * sin($rad);
-                            @endphp
-                            <line x1="{{ $x1 }}" y1="{{ $y1 }}" x2="{{ $x2 }}" y2="{{ $y2 }}" stroke="#FFFFFF" stroke-width="3" />
-                        @endforeach
-                    </svg>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="w-28 h-28 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden relative">
-                            <img src="{{ asset('images/caminho.png') }}" alt="" class="w-full h-full object-cover">
+                <div class="relative w-64 h-64 rounded-full shadow-lg" style="background: {{ $ringGradient }};">
+                    <div class="absolute inset-8 bg-white rounded-full flex items-center justify-center">
+                        <div class="w-32 h-32 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden">
+                            <img src="{{ asset('images/caminho.png') }}" alt="Caminho" class="w-full h-full object-cover">
                         </div>
                     </div>
-                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white border border-[#E4D5C3] rounded-full px-3 py-0.5 flex items-baseline gap-1 shadow-sm">
-                        <span class="text-sm font-bold text-[#3E2D1B]">{{ $percent }}%</span>
-                        <span class="text-[9px] text-[#776246] uppercase tracking-wide">da Rota</span>
+
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-[#E4D5C3] rounded-full px-4 py-1 shadow-sm">
+                        <span class="text-sm font-bold text-[#3E2D1B]">{{ $overallPillarPercent }}%</span>
                     </div>
                 </div>
 
-                <div class="flex gap-4 mt-5">
-                    <div class="flex items-center gap-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full" style="background-color:#B5432A"></div>
-                        <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">Comunidade</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full border-2 border-[#B5432A]"></div>
-                        <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">Partida</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full border-2 border-[#E4D5C3]"></div>
-                        <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">Serviço</span>
-                    </div>
+                <div class="flex gap-4 mt-6 flex-wrap justify-center">
+                    @foreach($pilares as $p)
+                        <div class="flex items-center gap-1.5" title="{{ $p['label'] }}: {{ $p['percent'] }}%">
+                            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $p['color'] }};"></div>
+                            <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">{{ $p['label'] }}</span>
+                            <span class="text-xs text-[#B0977A]">{{ $p['percent'] }}%</span>
+                        </div>
+                    @endforeach
                 </div>
             </div>
 
             <div class="hidden md:block w-px self-stretch bg-[#E4D5C3]"></div>
 
+            {{-- Dados do utilizador --}}
             <div class="flex-1 w-full">
-                <p class="text-xs text-[#776246] uppercase font-bold tracking-wider mb-1">Bem-vindo de volta</p>
-                <h2 class="text-xl font-bold text-[#3E2D1B] mb-4">{{ Auth::user()->name }}</h2>
+                <h2 class="text-xl font-bold text-[#3E2D1B] mb-4">Os meus dados</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Colaborador</p>
+                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ Auth::user()->name }}</p>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                    </div>
+
                     <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
                         <div>
                             <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Cargo</p>
@@ -93,196 +119,167 @@
                         </div>
                     </div>
 
-                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Objetivos cumpridos</p>
-                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ $totalDone }} de {{ $totalRefs }}</p>
-                        </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Dimensões iniciadas</p>
-                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">
-                                {{ collect($categories)->filter(fn($c) => collect($c['refs'])->intersect($completedRefs)->isNotEmpty())->count() }} de {{ count($categories) }}
-                            </p>
-                        </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                            </svg>
-                        </div>
-                    </div>
                 </div>
             </div>
+
         </div>
 
-        {{-- LINHA DO MEIO: Crachás por dimensão + Calendário --}}
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6 items-start">
+        {{-- LINHA DO MEIO: Grid de 2 colunas --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+            {{-- COLUNA ESQUERDA (2/3): Tabela de progresso por dimensão --}}
             <div class="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Crachás por Dimensão</h3>
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Detalhe por Dimensão</h3>
+                    <span class="text-xs font-semibold text-[#B0977A]">{{ $completedCountAll }} de {{ $totalRefsAll }} concluídos</span>
+                </div>
 
-                <div class="grid grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                     @foreach($categories as $cat)
                         @php
-                            $doneInCat = collect($cat['refs'])->intersect($completedRefs)->count();
-                            $totalInCat = count($cat['refs']);
+                            $catTotal = count($cat['refs']);
+                            $catCompleted = collect($cat['refs'])->filter(fn ($r) => in_array($r, $completedRefs))->count();
+                            $catPercent = $catTotal > 0 ? round(($catCompleted / $catTotal) * 100) : 0;
                         @endphp
-                        <div class="flex flex-col items-center text-center gap-2">
-                            <div class="w-14 h-14 flex items-center justify-center font-bold text-sm shadow-sm"
-                                 style="background-color: {{ $cat['color'] }}; color: {{ $cat['colorSoft'] }}; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);">
-                                {{ $doneInCat }}/{{ $totalInCat }}
-                            </div>
-                            <span class="text-sm font-semibold text-[#3E2D1B]">{{ $cat['name'] }}</span>
-
-                            <div class="flex flex-wrap justify-center gap-1.5 max-w-[140px]">
-                                @foreach($cat['refs'] as $ref)
-                                    @php $isCompleted = in_array($ref, $completedRefs); @endphp
-                                    <div class="w-3.5 h-3.5 rounded-full border-2 transition-all duration-300"
-                                         style="{{ $isCompleted ? 'background-color: ' . $cat['color'] . '; border-color: ' . $cat['color'] : 'border-color: #E5E7EB; background-color: white' }}"
-                                         title="{{ $ref }} — {{ $isCompleted ? 'concluído' : 'por concluir' }}">
+                        <div class="flex flex-col gap-2.5 p-3 rounded-2xl hover:bg-[#FAF7F5] transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold text-white shadow-sm shrink-0"
+                                         style="background-color: {{ $cat['color'] }};">
+                                        {{ $cat['label'] }}
                                     </div>
-                                @endforeach
+                                    <span class="text-sm font-semibold text-gray-700">{{ $cat['name'] }}</span>
+                                </div>
+                                <span class="text-xs font-semibold text-[#B0977A]">{{ $catCompleted }}/{{ $catTotal }}</span>
+                            </div>
+
+                            <div class="pl-9">
+                                <div class="w-full h-1.5 bg-[#F2ECE7] rounded-full overflow-hidden mb-2.5">
+                                    <div class="h-full rounded-full transition-all duration-500"
+                                         style="width: {{ $catPercent }}%; background-color: {{ $cat['color'] }};"></div>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($cat['refs'] as $ref)
+                                        @php $isCompleted = in_array($ref, $completedRefs); @endphp
+                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-300"
+                                             style="{{ $isCompleted ? 'background-color: ' . $cat['color'] . '; border-color: ' . $cat['color'] : 'border-color: #E5E7EB; background-color: white' }}"
+                                             title="{{ $ref }}{{ $isCompleted ? ' — aprovado' : ' — por realizar' }}">
+                                            @if($isCompleted)
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
+                                                </svg>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
             </div>
 
-            {{-- Calendário nativo (FullCalendar), alimentado pelas datas das Atas via /api/events --}}
-            <div class="lg:col-span-3 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-4">Calendário do Clã</h3>
-                <div id="calendar"></div>
+            {{-- COLUNA DIREITA (1/3): Como funciona / legenda --}}
+            <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 flex flex-col">
+                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-4">Como funciona</h3>
+
+                <p class="text-sm text-[#3E2D1B] leading-relaxed mb-5">
+                    Cada pilar — <strong>Comunidade</strong>, <strong>Partida</strong> e <strong>Serviço</strong> —
+                    representa uma etapa do teu Caminho. Dentro de cada um, o teu crescimento é avaliado
+                    nas 6 dimensões pessoais à esquerda.
+                </p>
+
+                <div class="space-y-2.5 mb-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style="background-color:#3E2D1B;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <span class="text-xs text-[#776246]">Objetivo aprovado</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-4 h-4 rounded-full border-2 border-[#E5E7EB] bg-white shrink-0"></div>
+                        <span class="text-xs text-[#776246]">Por realizar</span>
+                    </div>
+                </div>
+
+                <details class="mt-auto border-t border-[#E4D5C3] pt-4 group">
+                    <summary class="cursor-pointer text-sm font-semibold text-[#3E2D1B] flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                        Ver as 6 dimensões
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[#776246] transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <ul class="mt-3 space-y-2">
+                        @foreach($categories as $cat)
+                            <li class="flex items-center gap-2 text-xs text-[#776246]">
+                                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {{ $cat['color'] }};"></span>
+                                {{ $cat['name'] }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </details>
             </div>
+
         </div>
 
-        {{-- LINHA DE BAIXO: Atas do Agrupamento (nova, área horizontal) --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <div class="flex items-center gap-2.5">
-                    <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Atas</h3>
-                    <span class="text-xs font-semibold text-[#776246] bg-[#FAF7F5] border border-[#E4D5C3] rounded-full px-2 py-0.5">{{ $atas->count() }}</span>
-                </div>
+        {{-- LINHA DE BAIXO: Próximos eventos do Clã (Google Calendar) --}}
+        <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 mt-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Próximos Eventos do Clã</h3>
+                @if(!empty($calendarUrl))
+                    <a href="{{ $calendarUrl }}" target="_blank" rel="noopener"
+                       class="text-xs font-semibold text-[#B0977A] hover:text-[#3E2D1B] transition-colors">
+                        Ver calendário completo →
+                    </a>
+                @endif
             </div>
 
-            @if (session('status'))
-                <div class="mb-6 bg-[#EAF3DE] border border-[#B7D7A0] text-[#173404] text-sm rounded-xl px-4 py-3">
-                    {{ session('status') }}
+            @if(empty($events))
+                <div class="flex flex-col items-center justify-center text-center py-8">
+                    <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <p class="text-sm font-medium text-[#776246]">Sem eventos agendados de momento</p>
+                    <p class="text-xs text-[#B0977A] mt-1">As próximas atividades do Clã vão aparecer aqui assim que forem marcadas no calendário.</p>
+                </div>
+            @else
+                <div class="divide-y divide-[#F2ECE7]">
+                    @foreach($events as $event)
+                        <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+                            <div class="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-[#FAF7F5] border border-[#E4D5C3] shrink-0">
+                                <span class="text-[10px] font-bold text-[#B0977A] uppercase leading-none">{{ $mesesAbrev[$event['start']->format('m')] }}</span>
+                                <span class="text-lg font-bold text-[#3E2D1B] leading-tight mt-0.5">{{ $event['start']->format('d') }}</span>
+                            </div>
+
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-[#3E2D1B] truncate">{{ $event['title'] }}</p>
+                                <p class="text-xs text-[#776246] mt-0.5">
+                                    @if($event['all_day'])
+                                        Todo o dia
+                                    @else
+                                        {{ $event['start']->format('H:i') }} – {{ $event['end']->format('H:i') }}
+                                    @endif
+                                    @if(!empty($event['location']))
+                                        · {{ $event['location'] }}
+                                    @endif
+                                </p>
+                            </div>
+
+                            @if(!empty($event['link']))
+                                <a href="{{ $event['link'] }}" target="_blank" rel="noopener"
+                                   class="shrink-0 text-[#B0977A] hover:text-[#3E2D1B] transition-colors" title="Ver no Google Calendar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                            @endif
+                        </div>
+                    @endforeach
                 </div>
             @endif
-
-            {{-- Formulário para adicionar nova ata --}}
-            <form method="POST" action="{{ route('atas.store') }}" enctype="multipart/form-data"
-                  class="flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#FAF7F5] border border-[#E4D5C3] rounded-2xl p-4">
-                @csrf
-                <div class="flex-1">
-                    <label for="nome" class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Nome da Ata</label>
-                    <input type="text" name="nome" id="nome" value="{{ old('nome') }}"
-                           class="w-full rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]"
-                           placeholder="ex: Reunião de Direção — Janeiro" required>
-                    @error('nome') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label for="dia" class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Dia</label>
-                    <input type="date" name="dia" id="dia" value="{{ old('dia') }}"
-                           class="rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]" required>
-                    @error('dia') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label for="ficheiro" class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Ficheiro (PDF)</label>
-                    <input type="file" name="ficheiro" id="ficheiro" accept="application/pdf"
-                           class="text-sm text-[#3E2D1B] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-white file:border file:border-[#E4D5C3] file:text-[#776246] file:text-xs" required>
-                    @error('ficheiro') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                </div>
-                <button type="submit"
-                        class="bg-[#3E2D1B] hover:bg-[#2A1F13] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-                    Adicionar
-                </button>
-            </form>
-
-            {{-- Lista de atas --}}
-            <div class="overflow-x-auto -mx-2">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                    <tr class="text-xs font-bold text-[#776246] uppercase tracking-wider">
-                        <th class="px-2 pb-3 border-b border-[#E4D5C3]">Ata</th>
-                        <th class="px-2 pb-3 border-b border-[#E4D5C3] hidden sm:table-cell">Data</th>
-                        <th class="px-2 pb-3 border-b border-[#E4D5C3] hidden md:table-cell">Adicionado por</th>
-                        <th class="px-2 pb-3 border-b border-[#E4D5C3] text-right">Ficheiro</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @forelse($atas as $ata)
-                        @php
-                            $authorName = $ata->user->name ?? 'Utilizador removido';
-                            $initials = collect(explode(' ', trim($authorName)))
-                                ->filter()
-                                ->map(fn ($w) => mb_substr($w, 0, 1))
-                                ->take(2)
-                                ->implode('');
-                            $avatarPalette = ['#3E2D1B', '#776246', '#B5432A', '#8A6D3B', '#5C7A5C', '#A87C4F'];
-                            $avatarColor = $avatarPalette[crc32($authorName) % count($avatarPalette)];
-                        @endphp
-                        <tr class="group hover:bg-[#FAF7F5] transition-colors">
-                            <td class="px-2 py-3 border-b border-[#F2ECE7]">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 shrink-0 rounded-lg bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center group-hover:bg-white transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-medium text-[#3E2D1B] truncate">{{ $ata->nome }}</p>
-                                        <p class="text-xs text-[#B0977A] sm:hidden">{{ \Illuminate\Support\Carbon::parse($ata->dia)->locale('pt')->translatedFormat('d M Y') }}</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-2 py-3 border-b border-[#F2ECE7] hidden sm:table-cell">
-                                <span class="text-sm text-[#3E2D1B]">{{ \Illuminate\Support\Carbon::parse($ata->dia)->locale('pt')->translatedFormat('d \d\e F \d\e Y') }}</span>
-                            </td>
-                            <td class="px-2 py-3 border-b border-[#F2ECE7] hidden md:table-cell">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                                         style="background-color: {{ $avatarColor }};">
-                                        {{ strtoupper($initials) ?: '?' }}
-                                    </div>
-                                    <span class="text-sm text-[#3E2D1B]">{{ $authorName }}</span>
-                                </div>
-                            </td>
-                            <td class="px-2 py-3 border-b border-[#F2ECE7] text-right">
-                                <a href="{{ asset($ata->ficheiro) }}" target="_blank"
-                                   class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-[#E4D5C3] text-[#776246] hover:bg-white hover:border-[#B5432A] hover:text-[#B5432A] transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
-                                    </svg>
-                                    PDF
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="py-10 text-center">
-                                <div class="flex flex-col items-center gap-2">
-                                    <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <p class="text-sm font-medium text-[#776246]">Ainda não há atas registadas</p>
-                                    <p class="text-xs text-[#B0977A]">A primeira que adicionares aparece aqui.</p>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                    </tbody>
-                </table>
-            </div>
         </div>
 
     </div>
