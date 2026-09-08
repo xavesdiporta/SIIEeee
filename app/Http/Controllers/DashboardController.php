@@ -3,14 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Services\GoogleCalendarService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(GoogleCalendarService $calendar)
+    public function index(Request $request, GoogleCalendarService $calendar)
     {
+        // Navegação do calendário: espera um parâmetro ?mes=YYYY-MM (ex.: ?mes=2026-10).
+        // Sem parâmetro (ou se vier inválido), mostra sempre o mês atual.
+        $mesParam = $request->query('mes');
+
+        try {
+            $mesReferencia = $mesParam
+                ? Carbon::createFromFormat('Y-m', $mesParam)->startOfMonth()
+                : Carbon::now();
+        } catch (\Exception $e) {
+            $mesReferencia = Carbon::now();
+        }
+
         return view('pages.dashboard', [
-            'monthEvents' => $calendar->getEventsForMonth(),
-            'calendarUrl' => $calendar->getPublicCalendarUrl(),
+            'monthEvents'   => $calendar->getEventsForMonth($mesReferencia),
+            'calendarUrl'   => $calendar->getPublicCalendarUrl(),
+            'mesReferencia' => $mesReferencia,
         ]);
     }
 

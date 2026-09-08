@@ -61,7 +61,8 @@
             $diasSemanaLongos = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
 
             $hoje = \Illuminate\Support\Carbon::today();
-            $mesReferencia = $hoje->copy();
+            // $mesReferencia vem do Controller (a partir do ?mes=YYYY-MM); se não vier, cai no mês atual.
+            $mesReferencia = $mesReferencia ?? $hoje->copy();
             $inicioMes = $mesReferencia->copy()->startOfMonth();
             $fimMes = $mesReferencia->copy()->endOfMonth();
 
@@ -97,6 +98,14 @@
                     'eventos' => $eventosDoDia,
                 ];
             }
+
+            // Strings de navegação (?mes=YYYY-MM) para os botões de mês/ano anterior e seguinte.
+            $urlBase = request()->url();
+            $mesAnteriorQS   = $mesReferencia->copy()->subMonth()->format('Y-m');
+            $mesSeguinteQS   = $mesReferencia->copy()->addMonth()->format('Y-m');
+            $anoAnteriorQS   = $mesReferencia->copy()->subYear()->format('Y-m');
+            $anoSeguinteQS   = $mesReferencia->copy()->addYear()->format('Y-m');
+            $estaNoMesAtual  = $mesReferencia->format('Y-m') === $hoje->format('Y-m');
         @endphp
 
         {{-- CABEÇALHO --}}
@@ -270,13 +279,50 @@
 
         {{-- LINHA DE BAIXO: Calendário do Clã (Google Calendar) --}}
         <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 mt-6">
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Calendário do Clã</h3>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm font-semibold text-[#3E2D1B]">{{ $mesesNomes[$mesReferencia->format('m')] }} {{ $mesReferencia->format('Y') }}</span>
+
+                <div class="flex items-center gap-3">
+                    {{-- Navegação de ano/mês --}}
+                    <div class="flex items-center gap-0.5 bg-[#FAF7F5] border border-[#E4D5C3] rounded-full p-1">
+                        <a href="{{ $urlBase }}?mes={{ $anoAnteriorQS }}" title="Ano anterior"
+                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 19l-7-7 7-7M11 19l-7-7 7-7" />
+                            </svg>
+                        </a>
+                        <a href="{{ $urlBase }}?mes={{ $mesAnteriorQS }}" title="Mês anterior"
+                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </a>
+
+                        <span class="text-sm font-semibold text-[#3E2D1B] px-2 w-36 text-center select-none">
+                            {{ $mesesNomes[$mesReferencia->format('m')] }} {{ $mesReferencia->format('Y') }}
+                        </span>
+
+                        <a href="{{ $urlBase }}?mes={{ $mesSeguinteQS }}" title="Mês seguinte"
+                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                        <a href="{{ $urlBase }}?mes={{ $anoSeguinteQS }}" title="Ano seguinte"
+                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 5l7 7-7 7M13 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+
+                    @unless($estaNoMesAtual)
+                        <a href="{{ $urlBase }}" class="text-xs font-semibold text-[#DC2626] hover:underline shrink-0">Hoje</a>
+                    @endunless
+
                     @if(!empty($calendarUrl))
                         <a href="{{ $calendarUrl }}" target="_blank" rel="noopener"
-                           class="text-xs font-semibold text-[#B0977A] hover:text-[#3E2D1B] transition-colors">
+                           class="text-xs font-semibold text-[#B0977A] hover:text-[#3E2D1B] transition-colors shrink-0">
                             Ver calendário completo →
                         </a>
                     @endif
