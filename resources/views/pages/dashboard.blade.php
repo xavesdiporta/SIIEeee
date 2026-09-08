@@ -47,11 +47,56 @@
             }
             $ringGradient = 'conic-gradient(from -90deg, ' . implode(', ', $stops) . ')';
 
-            // Eventos do calendário do Clã — vêm do Controller via GoogleCalendarService.
-            // Se ainda não estiverem a ser passados, a secção mostra um estado vazio em vez de rebentar.
-            $events = $events ?? [];
+            // Eventos do mês do calendário do Clã — vêm do Controller via GoogleCalendarService::getEventsForMonth().
+            // Se ainda não estiverem a ser passados, o calendário mostra o mês vazio em vez de rebentar.
+            $monthEvents = $monthEvents ?? [];
             $calendarUrl = $calendarUrl ?? null;
-            $mesesAbrev = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago', '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'];
+
+            $mesesNomes = [
+                '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março', '04' => 'Abril',
+                '05' => 'Maio', '06' => 'Junho', '07' => 'Julho', '08' => 'Agosto',
+                '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
+            ];
+            $diasSemanaCurtos = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+            $diasSemanaLongos = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+
+            $hoje = \Illuminate\Support\Carbon::today();
+            $mesReferencia = $hoje->copy();
+            $inicioMes = $mesReferencia->copy()->startOfMonth();
+            $fimMes = $mesReferencia->copy()->endOfMonth();
+
+            // Agrupa os eventos do mês por dia (Y-m-d).
+            $eventosPorDia = [];
+            foreach ($monthEvents as $evento) {
+                $chave = $evento['start']->format('Y-m-d');
+                $eventosPorDia[$chave][] = $evento;
+            }
+
+            // Constrói a grelha de semanas (segunda a domingo) que cobre o mês inteiro,
+            // incluindo os dias do mês anterior/seguinte necessários para completar a grelha.
+            $inicioGrelha = $inicioMes->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
+            $fimGrelha = $fimMes->copy()->endOfWeek(\Carbon\Carbon::MONDAY);
+
+            $semanas = [];
+            $diaAtual = $inicioGrelha->copy();
+            while ($diaAtual <= $fimGrelha) {
+                $semana = [];
+                for ($i = 0; $i < 7; $i++) {
+                    $semana[] = $diaAtual->copy();
+                    $diaAtual->addDay();
+                }
+                $semanas[] = $semana;
+            }
+
+            // Agenda por baixo do calendário, com um rótulo em português já pronto para cada dia.
+            $agendaDoMes = [];
+            foreach ($eventosPorDia as $chave => $eventosDoDia) {
+                $dataObj = \Illuminate\Support\Carbon::parse($chave);
+                $agendaDoMes[] = [
+                    'label'  => $diasSemanaLongos[$dataObj->dayOfWeekIso - 1] . ', ' . $dataObj->format('j') . ' de ' . $mesesNomes[$dataObj->format('m')],
+                    'eventos' => $eventosDoDia,
+                ];
+            }
         @endphp
 
         {{-- CABEÇALHO --}}
@@ -223,63 +268,99 @@
 
         </div>
 
-        {{-- LINHA DE BAIXO: Próximos eventos do Clã (Google Calendar) --}}
+        {{-- LINHA DE BAIXO: Calendário do Clã (Google Calendar) --}}
         <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 mt-6">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Próximos Eventos do Clã</h3>
-                @if(!empty($calendarUrl))
-                    <a href="{{ $calendarUrl }}" target="_blank" rel="noopener"
-                       class="text-xs font-semibold text-[#B0977A] hover:text-[#3E2D1B] transition-colors">
-                        Ver calendário completo →
-                    </a>
-                @endif
+                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Calendário do Clã</h3>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-semibold text-[#3E2D1B]">{{ $mesesNomes[$mesReferencia->format('m')] }} {{ $mesReferencia->format('Y') }}</span>
+                    @if(!empty($calendarUrl))
+                        <a href="{{ $calendarUrl }}" target="_blank" rel="noopener"
+                           class="text-xs font-semibold text-[#B0977A] hover:text-[#3E2D1B] transition-colors">
+                            Ver calendário completo →
+                        </a>
+                    @endif
+                </div>
             </div>
 
-            @if(empty($events))
-                <div class="flex flex-col items-center justify-center text-center py-8">
-                    <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <p class="text-sm font-medium text-[#776246]">Sem eventos agendados de momento</p>
-                    <p class="text-xs text-[#B0977A] mt-1">As próximas atividades do Clã vão aparecer aqui assim que forem marcadas no calendário.</p>
-                </div>
-            @else
-                <div class="divide-y divide-[#F2ECE7]">
-                    @foreach($events as $event)
-                        <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-                            <div class="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-[#FAF7F5] border border-[#E4D5C3] shrink-0">
-                                <span class="text-[10px] font-bold text-[#B0977A] uppercase leading-none">{{ $mesesAbrev[$event['start']->format('m')] }}</span>
-                                <span class="text-lg font-bold text-[#3E2D1B] leading-tight mt-0.5">{{ $event['start']->format('d') }}</span>
-                            </div>
+            {{-- Cabeçalho dos dias da semana --}}
+            <div class="grid grid-cols-7 gap-1 mb-1">
+                @foreach($diasSemanaCurtos as $dia)
+                    <div class="text-center text-[10px] font-bold text-[#B0977A] uppercase py-1">{{ $dia }}</div>
+                @endforeach
+            </div>
 
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-[#3E2D1B] truncate">{{ $event['title'] }}</p>
-                                <p class="text-xs text-[#776246] mt-0.5">
-                                    @if($event['all_day'])
-                                        Todo o dia
-                                    @else
-                                        {{ $event['start']->format('H:i') }} – {{ $event['end']->format('H:i') }}
-                                    @endif
-                                    @if(!empty($event['location']))
-                                        · {{ $event['location'] }}
-                                    @endif
-                                </p>
-                            </div>
-
-                            @if(!empty($event['link']))
-                                <a href="{{ $event['link'] }}" target="_blank" rel="noopener"
-                                   class="shrink-0 text-[#B0977A] hover:text-[#3E2D1B] transition-colors" title="Ver no Google Calendar">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                </a>
+            {{-- Grelha do mês --}}
+            <div class="grid grid-cols-7 gap-1">
+                @foreach($semanas as $semana)
+                    @foreach($semana as $dia)
+                        @php
+                            $chaveDia = $dia->format('Y-m-d');
+                            $eventosDoDia = $eventosPorDia[$chaveDia] ?? [];
+                            $ehMesAtual = $dia->month === $mesReferencia->month;
+                            $ehHoje = $dia->isSameDay($hoje);
+                        @endphp
+                        <div class="aspect-square flex flex-col items-center justify-center gap-0.5 rounded-xl
+                            {{ $ehMesAtual ? 'text-[#3E2D1B]' : 'text-[#E4D5C3]' }}
+                            {{ $ehHoje ? 'bg-[#FAF7F5] border-2 border-[#DC2626] font-bold' : '' }}">
+                            <span class="text-xs">{{ $dia->format('j') }}</span>
+                            @if(count($eventosDoDia) > 0)
+                                <span class="flex gap-0.5">
+                                    @foreach(array_slice($eventosDoDia, 0, 3) as $ev)
+                                        <span class="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
+                                    @endforeach
+                                </span>
                             @endif
                         </div>
                     @endforeach
-                </div>
-            @endif
+                @endforeach
+            </div>
+
+            {{-- Agenda do mês, agrupada por dia --}}
+            <div class="mt-6 border-t border-[#E4D5C3] pt-5">
+                @if(empty($agendaDoMes))
+                    <div class="flex flex-col items-center justify-center text-center py-6">
+                        <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-[#776246]">Sem eventos este mês</p>
+                        <p class="text-xs text-[#B0977A] mt-1">As atividades do Clã vão aparecer aqui assim que forem marcadas no calendário.</p>
+                    </div>
+                @else
+                    <div class="space-y-4">
+                        @foreach($agendaDoMes as $dia)
+                            <div>
+                                <p class="text-xs font-bold text-[#B0977A] uppercase tracking-wide mb-2">{{ $dia['label'] }}</p>
+                                <div class="space-y-2">
+                                    @foreach($dia['eventos'] as $evento)
+                                        <div class="flex items-center gap-3">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0"></span>
+                                            <p class="text-sm text-[#3E2D1B] flex-1 min-w-0 truncate">{{ $evento['title'] }}</p>
+                                            <p class="text-xs text-[#776246] shrink-0">
+                                                @if($evento['all_day'])
+                                                    Todo o dia
+                                                @else
+                                                    {{ $evento['start']->format('H:i') }}
+                                                @endif
+                                            </p>
+                                            @if(!empty($evento['link']))
+                                                <a href="{{ $evento['link'] }}" target="_blank" rel="noopener"
+                                                   class="shrink-0 text-[#B0977A] hover:text-[#3E2D1B] transition-colors" title="Ver no Google Calendar">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                    </svg>
+                                                </a>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
         </div>
 
     </div>

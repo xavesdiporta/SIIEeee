@@ -69,6 +69,56 @@ class GoogleCalendarService
     }
 
     /**
+     * Devolve todos os eventos dentro de um mês (por omissão, o mês atual), para preencher
+     * a grelha do calendário. Fica em cache 20 minutos, por mês, para poupar quota da API.
+     *
+     * @return array<int, array{title:string, location:?string, start:Carbon, end:Carbon, all_day:bool, link:?string}>
+     */
+    public function getEventsForMonth(?Carbon $month = null): array
+    {
+        $month = $month ?? Carbon::now();
+        $inicio = $month->copy()->startOfMonth();
+        $fim = $month->copy()->endOfMonth();
+
+        $cacheKey = 'cla.calendar.month.' . $inicio->format('Y-m');
+
+        return Cache::remember($cacheKey, now()->addMinutes(20), function () use ($inicio, $fim) {
+            try {
+                $response = $this->service->events->listEvents($this->calendarId, [
+                    'timeMin'      => $inicio->toRfc3339String(),
+                    'timeMax'      => $fim->toRfc3339String(),
+                    'singleEvents' => true,
+                    'orderBy'      => 'startTime',
+                    'maxResults'   => 250,
+                ]);
+            } catch (\Exception $e) {
+                report($e);
+
+                return [];
+            }
+
+            $events = [];
+
+            foreach ($response->getItems() as $event) {
+                $isAllDay = is_null($event->getStart()->getDateTime());
+                $start = $isAllDay ? $event->getStart()->getDate() : $event->getStart()->getDateTime();
+                $end   = $isAllDay ? $event->getEnd()->getDate()   : $event->getEnd()->getDateTime();
+
+                $events[] = [
+                    'title'    => $event->getSummary() ?: 'Sem título',
+                    'location' => $event->getLocation(),
+                    'start'    => Carbon::parse($start),
+                    'end'      => Carbon::parse($end),
+                    'all_day'  => $isAllDay,
+                    'link'     => $event->getHtmlLink(),
+                ];
+            }
+
+            return $events;
+        });
+    }
+
+    /**
      * Link direto para o calendário público, usado no botão "Ver calendário completo".
      */
     public function getPublicCalendarUrl(): string
