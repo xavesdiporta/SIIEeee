@@ -31,7 +31,7 @@
             <x-nav-link href="{{ route('allcalendar')}}" :active="request()->routeIs('allcalendar')" class="block w-full">
                 {{ __('O meu Progresso') }}
             </x-nav-link>
-            <x-nav-link href="{{ route('noites')}}" :active="request()->routeIs('noites')" class="block w-full">
+            <x-nav-link href="{{ route('noites-campo')}}" :active="request()->routeIs('noites-campo')" class="block w-full">
                 {{ __('Noites de Campo') }}
             </x-nav-link>
             <x-nav-link href="{{ route('horasmar')}}" :active="request()->routeIs('horasmar')" class="block w-full">
