@@ -66,6 +66,14 @@ return [
         'calendar_id' => env('GOOGLE_CALENDAR_ID'),
     ],
 
+    'google_drive' => [
+        'credentials' => env('GOOGLE_DRIVE_CREDENTIALS'),
+        'files' => [
+            'noites_campo' => env('DRIVE_FILE_NOITES_CAMPO'),
+            'horas_mar' => env('DRIVE_FILE_HORAS_MAR'),
+        ],
+    ],
+
     'github' => [
         'client_id' => env('GITHUB_CLIENT_ID'),
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
