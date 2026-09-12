@@ -33,4 +33,12 @@ class DashboardController extends Controller
     {
         return view('pages.faceistabel');
     }
+    public function noites()
+    {
+        return view('pages.noitescamp');
+    }
+    public function horasmar()
+    {
+        return view('pages.horasmar');
+    }
 }
