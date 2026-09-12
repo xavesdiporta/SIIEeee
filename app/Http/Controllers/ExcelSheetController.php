@@ -13,7 +13,7 @@ class ExcelSheetController extends Controller
         $reader->readNoitesCampo(config('services.google_drive.files.noites_campo'))
         );
 
-        return view('noites', $data);
+        return view('pages.noitescamp', $data);
     }
 
     public function horasMar(GoogleSheetsReader $reader)
