@@ -99,7 +99,12 @@ class GoogleSheetsReader
             $participantes = [];
 
             foreach ($people as $col => $person) {
-                if (trim($row[$col] ?? '') !== '') {
+                $valor = trim($row[$col] ?? '');
+                // Uma checkbox desmarcada no Google Sheets devolve "FALSE" (não vazio!),
+                // por isso não basta verificar se a célula tem conteúdo.
+                $marcado = $valor !== '' && strtoupper($valor) !== 'FALSE';
+
+                if ($marcado) {
                     $participantes[] = $person['name'];
                     $people[$col]['total_activities']++;
                     $people[$col]['total_nights'] += $noites;
