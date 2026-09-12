@@ -11,8 +11,17 @@ class GoogleSheetsReader
 
     public function __construct()
     {
+        $credentialsPath = config('services.google_drive.credentials');
+
+        // Se for um caminho absoluto (ex: /etc/secrets/... no Render), usa tal
+        // e qual. Se for relativo (ex: storage/app/... em local), junta ao
+        // caminho base do projeto.
+        $fullPath = str_starts_with($credentialsPath, '/')
+            ? $credentialsPath
+            : base_path($credentialsPath);
+
         $client = new Client();
-        $client->setAuthConfig(base_path(config('services.google_drive.credentials')));
+        $client->setAuthConfig($fullPath);
         $client->addScope(Sheets::SPREADSHEETS_READONLY);
 
         $this->sheets = new Sheets($client);
