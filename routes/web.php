@@ -68,4 +68,10 @@ Route::middleware([
 
     // Eventos para o calendário (FullCalendar consome isto via fetch)
     Route::get('/api/events', [AtaController::class, 'events'])->name('api.events');
+
+    Route::get('/limpar-cache-sheets', function () {
+        \Illuminate\Support\Facades\Cache::forget('sheet.noites_campo');
+        \Illuminate\Support\Facades\Cache::forget('sheet.horas_mar');
+        return 'Cache das sheets limpa. Podes voltar às páginas normais.';
+    })->name('limpar-cache-sheets');
 });
