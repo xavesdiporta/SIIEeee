@@ -26,27 +26,27 @@
             <div class="lg:col-span-1 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
                 <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Por Pessoa</h3>
 
-                <div class="flex flex-col gap-5">
+                <div class="flex flex-col gap-5" id="painel-por-pessoa">
                     @forelse($people_ranked as $i => $person)
                         @php
                             $initials = collect(explode(' ', trim($person['name'])))->filter()->map(fn($w) => mb_substr($w, 0, 1))->take(2)->implode('');
                             $barWidth = $maxNoites > 0 ? round(($person['total_nights'] / $maxNoites) * 100) : 0;
                         @endphp
-                        <div class="flex items-start gap-3">
+                        <div class="flex items-start gap-3 pessoa-card" data-person-col="{{ $person['col'] }}">
                             <span class="text-xs font-bold text-[#B0977A] w-4 shrink-0 mt-1">{{ $i + 1 }}</span>
                             <div class="w-8 h-8 shrink-0 rounded-full bg-[#3E2D1B] text-white flex items-center justify-center text-[11px] font-bold mt-0.5">
                                 {{ strtoupper($initials) ?: '?' }}
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-baseline gap-1.5">
-                                    <span class="text-lg font-bold text-[#B5432A] leading-none">{{ $person['total_nights'] }}</span>
+                                    <span class="text-lg font-bold text-[#B5432A] leading-none valor-noites">{{ $person['total_nights'] }}</span>
                                     <span class="text-[11px] text-[#B0977A] uppercase tracking-wide">noites</span>
                                 </div>
                                 <span class="text-sm font-medium text-[#3E2D1B] truncate block mt-0.5">{{ $person['name'] }}</span>
                                 <div class="h-1.5 bg-[#F2ECE7] rounded-full mt-2 overflow-hidden">
-                                    <div class="h-full bg-[#B5432A] rounded-full" style="width: {{ $barWidth }}%"></div>
+                                    <div class="h-full bg-[#B5432A] rounded-full barra-noites" style="width: {{ $barWidth }}%"></div>
                                 </div>
-                                <p class="text-[11px] text-[#B0977A] mt-1">{{ $person['total_activities'] }} atividades</p>
+                                <p class="text-[11px] text-[#B0977A] mt-1"><span class="valor-atividades">{{ $person['total_activities'] }}</span> atividades</p>
                             </div>
                         </div>
                     @empty
@@ -129,6 +129,7 @@
                                                class="toggle-participacao w-4 h-4 accent-[#B5432A] cursor-pointer"
                                                data-row="{{ $act['row'] }}"
                                                data-col="{{ $person['col'] }}"
+                                               data-noites="{{ $act['noites'] }}"
                                             {{ $participou ? 'checked' : '' }}>
                                     </td>
                                 @endforeach
@@ -149,10 +150,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            let maxNoites = {{ $maxNoites }};
 
             document.querySelectorAll('.toggle-participacao').forEach(function (checkbox) {
                 checkbox.addEventListener('change', function () {
                     const original = checkbox.checked;
+                    const noites = parseInt(checkbox.dataset.noites, 10) || 0;
+                    const personCol = checkbox.dataset.col;
                     checkbox.disabled = true;
 
                     fetch('{{ route("noites-campo.toggle") }}', {
@@ -163,13 +167,14 @@
                         },
                         body: JSON.stringify({
                             row: parseInt(checkbox.dataset.row, 10),
-                            col: parseInt(checkbox.dataset.col, 10),
+                            col: parseInt(personCol, 10),
                             value: original,
                         }),
                     })
                         .then(function (res) {
                             if (!res.ok) throw new Error('Falhou');
                             checkbox.disabled = false;
+                            atualizarPainelPessoa(personCol, noites, original);
                         })
                         .catch(function () {
                             checkbox.checked = !original; // reverte em caso de erro
@@ -178,6 +183,35 @@
                         });
                 });
             });
+
+            function atualizarPainelPessoa(personCol, noites, marcado) {
+                const card = document.querySelector('.pessoa-card[data-person-col="' + personCol + '"]');
+                if (!card) return;
+
+                const valorNoites = card.querySelector('.valor-noites');
+                const valorAtividades = card.querySelector('.valor-atividades');
+                const barra = card.querySelector('.barra-noites');
+
+                let novoTotalNoites = parseInt(valorNoites.textContent, 10) + (marcado ? noites : -noites);
+                let novoTotalAtividades = parseInt(valorAtividades.textContent, 10) + (marcado ? 1 : -1);
+
+                novoTotalNoites = Math.max(0, novoTotalNoites);
+                novoTotalAtividades = Math.max(0, novoTotalAtividades);
+
+                valorNoites.textContent = novoTotalNoites;
+                valorAtividades.textContent = novoTotalAtividades;
+
+                // se este total ultrapassar o máximo atual, ajusta a escala de todas as barras
+                if (novoTotalNoites > maxNoites) {
+                    maxNoites = novoTotalNoites;
+                }
+
+                const novaLargura = maxNoites > 0 ? Math.round((novoTotalNoites / maxNoites) * 100) : 0;
+                barra.style.width = novaLargura + '%';
+
+                // Nota: a ordem do ranking (#1, #2...) só se atualiza ao recarregar
+                // a página — mudar isto em direto exigiria reordenar o DOM todo.
+            }
         });
     </script>
 </x-app-layout>

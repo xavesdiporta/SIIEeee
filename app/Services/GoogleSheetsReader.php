@@ -85,6 +85,24 @@ class GoogleSheetsReader
                 continue;
             }
 
+            // A partir daqui a folha deixa de ter atividades e passa a ter
+            // linhas de resumo/notas (Ajustes, Total c/ acantonamento, Noites
+            // de campo:, Em falta/Ajustes...). Paramos assim que encontramos
+            // uma destas, para não as tratar como atividades nem deixar que
+            // uma nova atividade seja inserida a seguir a elas.
+            $nomeLower = mb_strtolower($nome);
+            $marcadoresDeFim = ['ajustes', 'total c/', 'noites de campo', 'em falta'];
+            $ehLinhaDeResumo = false;
+            foreach ($marcadoresDeFim as $marcador) {
+                if (str_starts_with($nomeLower, $marcador)) {
+                    $ehLinhaDeResumo = true;
+                    break;
+                }
+            }
+            if ($ehLinhaDeResumo) {
+                break;
+            }
+
             $rowNumber = $i + 4; // número real da linha na folha (1-indexado)
             $rawRow = $raw[$i + 3] ?? [];
             $noites = (int) ($row[$colNoites] ?? 0);
@@ -124,21 +142,48 @@ class GoogleSheetsReader
     }
 
     /**
-     * Acrescenta uma nova atividade (linha) no fim da folha, nas colunas B-E
-     * (Data, Nome, Local, Noites). As colunas das pessoas ficam por marcar.
+     * Insere uma nova atividade logo a seguir à última atividade real
+     * (não no fim absoluto da folha, que pode ter linhas de resumo/notas
+     * depois da tabela). $afterRow é o número da última linha de atividade
+     * real (1-indexado) — vem de readNoitesCampo().
+     *
+     * Insere a linha em branco com inheritFromBefore=true, o que copia a
+     * formatação da linha anterior — incluindo as checkboxes das pessoas,
+     * que assim já aparecem corretamente no Sheets, sem precisares de as
+     * estender à mão.
      */
-    public function appendActivity(string $spreadsheetId, string $dia, string $nome, string $local, int $noites): void
+    public function appendActivity(string $spreadsheetId, string $dia, string $nome, string $local, int $noites, int $afterRow): void
     {
-        $values = new ValueRange([
-            'values' => [[$dia, $nome, $local, $noites]],
-        ]);
+        $sheetId = $this->firstSheetId($spreadsheetId);
 
-        $this->sheets->spreadsheets_values->append(
+        $this->sheets->spreadsheets->batchUpdate($spreadsheetId, new \Google\Service\Sheets\BatchUpdateSpreadsheetRequest([
+            'requests' => [[
+                'insertDimension' => [
+                    'range' => [
+                        'sheetId' => $sheetId,
+                        'dimension' => 'ROWS',
+                        'startIndex' => $afterRow,     // 0-indexado; equivale à linha $afterRow+1 (1-indexado)
+                        'endIndex' => $afterRow + 1,
+                    ],
+                    'inheritFromBefore' => true,
+                ],
+            ]],
+        ]));
+
+        $newRow = $afterRow + 1;
+
+        $this->sheets->spreadsheets_values->update(
             $spreadsheetId,
-            'B:E',
-            $values,
-            ['valueInputOption' => 'USER_ENTERED', 'insertDataOption' => 'INSERT_ROWS']
+            "B{$newRow}:E{$newRow}",
+            new ValueRange(['values' => [[$dia, $nome, $local, $noites]]]),
+            ['valueInputOption' => 'USER_ENTERED']
         );
+    }
+
+    private function firstSheetId(string $spreadsheetId): int
+    {
+        $spreadsheet = $this->sheets->spreadsheets->get($spreadsheetId);
+        return $spreadsheet->getSheets()[0]->getProperties()->getSheetId();
     }
 
     /**

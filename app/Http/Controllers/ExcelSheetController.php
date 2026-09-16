@@ -35,12 +35,21 @@ class ExcelSheetController extends Controller
             'noites' => ['required', 'integer', 'min:0'],
         ]);
 
+        $spreadsheetId = config('services.google_drive.files.noites_campo');
+
+        // Vai buscar dados frescos (não a cache) para ter a certeza de qual é
+        // mesmo a última linha real de atividade neste preciso momento.
+        $dadosAtuais = $reader->readNoitesCampo($spreadsheetId);
+        $ultimaAtividade = end($dadosAtuais['activities']);
+        $afterRow = $ultimaAtividade ? $ultimaAtividade['row'] : 3; // linha 3 = cabeçalho, cai logo na 4
+
         $reader->appendActivity(
-            config('services.google_drive.files.noites_campo'),
+            $spreadsheetId,
             $validated['dia'],
             $validated['nome'],
             $validated['local'] ?? '',
-            $validated['noites']
+            $validated['noites'],
+            $afterRow
         );
 
         Cache::forget('sheet.noites_campo');
