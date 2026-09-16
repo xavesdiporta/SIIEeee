@@ -3,7 +3,7 @@
 
         @php
             $totalNoites = collect($activities)->sum('noites');
-            $maxNoites = collect($people)->max('total_nights') ?: 1;
+            $maxNoites = collect($people_ranked)->max('total_nights') ?: 1;
         @endphp
 
         {{-- CABEÇALHO --}}
@@ -14,6 +14,12 @@
             </div>
         </div>
 
+        @if (session('status'))
+            <div class="mb-6 bg-[#EAF3DE] border border-[#B7D7A0] text-[#173404] text-sm rounded-xl px-4 py-3">
+                {{ session('status') }}
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
             {{-- CLASSIFICAÇÃO POR PESSOA --}}
@@ -21,7 +27,7 @@
                 <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Por Pessoa</h3>
 
                 <div class="flex flex-col gap-5">
-                    @forelse($people as $i => $person)
+                    @forelse($people_ranked as $i => $person)
                         @php
                             $initials = collect(explode(' ', trim($person['name'])))->filter()->map(fn($w) => mb_substr($w, 0, 1))->take(2)->implode('');
                             $barWidth = $maxNoites > 0 ? round(($person['total_nights'] / $maxNoites) * 100) : 0;
@@ -32,7 +38,6 @@
                                 {{ strtoupper($initials) ?: '?' }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                {{-- Total em destaque, por cima do nome --}}
                                 <div class="flex items-baseline gap-1.5">
                                     <span class="text-lg font-bold text-[#B5432A] leading-none">{{ $person['total_nights'] }}</span>
                                     <span class="text-[11px] text-[#B0977A] uppercase tracking-wide">noites</span>
@@ -52,7 +57,45 @@
 
             {{-- GRELHA ESTILO GOOGLE SHEETS --}}
             <div class="lg:col-span-3 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Histórico de Atividades</h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Histórico de Atividades</h3>
+                    <button type="button" onclick="document.getElementById('form-nova-atividade').classList.toggle('hidden')"
+                            class="inline-flex items-center gap-1.5 bg-[#3E2D1B] hover:bg-[#2A1F13] text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Nova Atividade
+                    </button>
+                </div>
+
+                {{-- Formulário de nova atividade (escondido por omissão) --}}
+                <form id="form-nova-atividade" method="POST" action="{{ route('noites-campo.store') }}"
+                      class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#FAF7F5] border border-[#E4D5C3] rounded-2xl p-4">
+                    @csrf
+                    <div>
+                        <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Data</label>
+                        <input type="text" name="dia" placeholder="2026/09/16" required
+                               class="rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Nome da atividade</label>
+                        <input type="text" name="nome" required
+                               class="w-full rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Local</label>
+                        <input type="text" name="local"
+                               class="w-full rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Noites</label>
+                        <input type="number" name="noites" min="0" value="1" required
+                               class="w-20 rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
+                    </div>
+                    <button type="submit" class="bg-[#B5432A] hover:bg-[#96371F] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                        Adicionar
+                    </button>
+                </form>
 
                 <div class="overflow-auto -mx-2 max-h-[640px] border border-[#E4D5C3] rounded-xl">
                     <table class="border-collapse text-sm min-w-full">
@@ -80,11 +123,13 @@
                                 <td class="border-b border-r border-[#E4D5C3] px-3 py-2 text-[#3E2D1B]">{{ $act['local'] }}</td>
                                 <td class="border-b border-r border-[#E4D5C3] px-2 py-2 text-center font-semibold text-[#3E2D1B]">{{ $act['noites'] }}</td>
                                 @foreach($people as $person)
-                                    @php $participou = in_array($person['name'], $act['participantes'], true); @endphp
-                                    <td class="border-b border-r border-[#E4D5C3] text-center {{ $participou ? 'bg-[#FCEBE6]' : '' }}">
-                                        @if($participou)
-                                            <span class="text-[#B5432A] font-bold">✓</span>
-                                        @endif
+                                    @php $participou = in_array($person['col'], $act['participantes_cols'], true); @endphp
+                                    <td class="border-b border-r border-[#E4D5C3] text-center">
+                                        <input type="checkbox"
+                                               class="toggle-participacao w-4 h-4 accent-[#B5432A] cursor-pointer"
+                                               data-row="{{ $act['row'] }}"
+                                               data-col="{{ $person['col'] }}"
+                                            {{ $participou ? 'checked' : '' }}>
                                     </td>
                                 @endforeach
                             </tr>
@@ -100,4 +145,39 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+            document.querySelectorAll('.toggle-participacao').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    const original = checkbox.checked;
+                    checkbox.disabled = true;
+
+                    fetch('{{ route("noites-campo.toggle") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            row: parseInt(checkbox.dataset.row, 10),
+                            col: parseInt(checkbox.dataset.col, 10),
+                            value: original,
+                        }),
+                    })
+                        .then(function (res) {
+                            if (!res.ok) throw new Error('Falhou');
+                            checkbox.disabled = false;
+                        })
+                        .catch(function () {
+                            checkbox.checked = !original; // reverte em caso de erro
+                            checkbox.disabled = false;
+                            alert('Não foi possível guardar. Tenta outra vez.');
+                        });
+                });
+            });
+        });
+    </script>
 </x-app-layout>

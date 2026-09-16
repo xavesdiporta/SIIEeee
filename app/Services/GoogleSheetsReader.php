@@ -4,36 +4,31 @@ namespace App\Services;
 
 use Google\Client;
 use Google\Service\Sheets;
+use Google\Service\Sheets\ValueRange;
 
 class GoogleSheetsReader
 {
     protected Sheets $sheets;
 
+    // colunas M, Q, R, S, T, U, V, W, X, Y, Z (0-indexado a partir de A=0)
+    protected array $personCols = [12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
+
     public function __construct()
     {
         $credentialsPath = config('services.google_drive.credentials');
 
-        // Se for um caminho absoluto (ex: /etc/secrets/... no Render), usa tal
-        // e qual. Se for relativo (ex: storage/app/... em local), junta ao
-        // caminho base do projeto.
         $fullPath = str_starts_with($credentialsPath, '/')
             ? $credentialsPath
             : base_path($credentialsPath);
 
         $client = new Client();
         $client->setAuthConfig($fullPath);
-        $client->addScope(Sheets::SPREADSHEETS_READONLY);
+        // Escopo de leitura E escrita — precisamos de escrever de volta na folha.
+        $client->addScope(Sheets::SPREADSHEETS);
 
         $this->sheets = new Sheets($client);
     }
 
-    /**
-     * Lê um intervalo de uma Google Sheet e devolve as linhas já associadas
-     * ao cabeçalho (1ª linha do intervalo).
-     *
-     * $range por omissão lê a primeira folha inteira (ex: "Folha1").
-     * Se a tua folha tiver outro nome, passa-o (ex: "Registo!A1:Z").
-     */
     public function readAsRows(string $spreadsheetId, string $range = 'A1:Z1000'): array
     {
         $response = $this->sheets->spreadsheets_values->get($spreadsheetId, $range);
@@ -48,7 +43,6 @@ class GoogleSheetsReader
 
         return array_values(array_filter(
             array_map(function ($row) use ($header, $numCols) {
-                // completa a linha com strings vazias se tiver menos colunas que o cabeçalho
                 $row = array_pad($row, $numCols, '');
                 return array_combine($header, array_slice($row, 0, $numCols));
             }, $values),
@@ -57,75 +51,125 @@ class GoogleSheetsReader
     }
 
     /**
-     * Leitor dedicado à folha "Noites de Campo".
-     *
-     * Esta folha tem uma estrutura irregular: colunas B-F são Data/Nome/Local/
-     * Noites/Acantonamento, depois há colunas vazias/ocultas, e as pessoas
-     * aparecem em colunas não-contíguas (M, depois Q até Z) com o nome na
-     * linha 3. A participação é marcada com um X (ou qualquer texto) na
-     * célula da pessoa, na linha da atividade.
+     * Leitor dedicado à folha "Noites de Campo". Devolve as pessoas na ordem
+     * ORIGINAL das colunas (para a grelha bater certo com o Sheets) — a
+     * ordenação por ranking é feita depois, na camada do controller/view.
      */
     public function readNoitesCampo(string $spreadsheetId): array
     {
-        $response = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:AA1000');
-        $values = $response->getValues() ?? [];
+        $formatted = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:AA1000')->getValues() ?? [];
 
-        $colData = 1;   // coluna B
-        $colNome = 2;   // coluna C
-        $colLocal = 3;  // coluna D
-        $colNoites = 4; // coluna E
+        $raw = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:AA1000', [
+            'valueRenderOption' => 'UNFORMATTED_VALUE',
+        ])->getValues() ?? [];
 
-        // colunas M, Q, R, S, T, U, V, W, X, Y, Z (0-indexado a partir de A=0)
-        $personCols = [12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
+        $colData = 1;
+        $colNome = 2;
+        $colLocal = 3;
+        $colNoites = 4;
 
-        $headerRow = $values[2] ?? []; // nomes das pessoas ficam na linha 3 da folha
+        $headerRow = $formatted[2] ?? [];
 
         $people = [];
-        foreach ($personCols as $col) {
+        foreach ($this->personCols as $col) {
             $name = trim($headerRow[$col] ?? '');
             if ($name !== '') {
-                $people[$col] = ['name' => $name, 'total_activities' => 0, 'total_nights' => 0];
+                $people[$col] = ['col' => $col, 'name' => $name, 'total_activities' => 0, 'total_nights' => 0];
             }
         }
 
         $activities = [];
-        foreach (array_slice($values, 3) as $row) {
+        foreach (array_slice($formatted, 3) as $i => $row) {
             $nome = trim($row[$colNome] ?? '');
             if ($nome === '') {
-                continue; // linha vazia ou de separação
+                continue;
             }
 
+            $rowNumber = $i + 4; // número real da linha na folha (1-indexado)
+            $rawRow = $raw[$i + 3] ?? [];
             $noites = (int) ($row[$colNoites] ?? 0);
-            $participantes = [];
+            $participantesCols = [];
 
             foreach ($people as $col => $person) {
-                $valor = trim($row[$col] ?? '');
-                // Uma checkbox desmarcada no Google Sheets devolve "FALSE" (não vazio!),
-                // por isso não basta verificar se a célula tem conteúdo.
-                $marcado = $valor !== '' && strtoupper($valor) !== 'FALSE';
+                $valorBruto = $rawRow[$col] ?? null;
+
+                $marcado = match (true) {
+                    is_bool($valorBruto) => $valorBruto,
+                    is_string($valorBruto) => trim($valorBruto) !== '',
+                    is_numeric($valorBruto) => (float) $valorBruto !== 0.0,
+                    default => false,
+                };
 
                 if ($marcado) {
-                    $participantes[] = $person['name'];
+                    $participantesCols[] = $col;
                     $people[$col]['total_activities']++;
                     $people[$col]['total_nights'] += $noites;
                 }
             }
 
             $activities[] = [
+                'row' => $rowNumber,
                 'data' => trim($row[$colData] ?? ''),
                 'nome' => $nome,
                 'local' => trim($row[$colLocal] ?? ''),
                 'noites' => $noites,
-                'participantes' => $participantes,
+                'participantes_cols' => $participantesCols, // colunas (int) marcadas nesta linha
             ];
         }
 
-        $peopleList = array_values($people);
-        usort($peopleList, fn ($a, $b) => $b['total_nights'] <=> $a['total_nights']);
-
         return [
-            'people' => $peopleList,
+            'people' => array_values($people), // ordem original das colunas
             'activities' => $activities,
         ];
+    }
+
+    /**
+     * Acrescenta uma nova atividade (linha) no fim da folha, nas colunas B-E
+     * (Data, Nome, Local, Noites). As colunas das pessoas ficam por marcar.
+     */
+    public function appendActivity(string $spreadsheetId, string $dia, string $nome, string $local, int $noites): void
+    {
+        $values = new ValueRange([
+            'values' => [[$dia, $nome, $local, $noites]],
+        ]);
+
+        $this->sheets->spreadsheets_values->append(
+            $spreadsheetId,
+            'B:E',
+            $values,
+            ['valueInputOption' => 'USER_ENTERED', 'insertDataOption' => 'INSERT_ROWS']
+        );
+    }
+
+    /**
+     * Escreve true/false numa célula específica (linha real da folha, coluna
+     * 0-indexada a partir de A). Usado para marcar/desmarcar participação.
+     */
+    public function updateCell(string $spreadsheetId, int $row, int $colIndex, bool $value): void
+    {
+        $range = $this->columnLetter($colIndex) . $row;
+
+        $values = new ValueRange([
+            'values' => [[$value]],
+        ]);
+
+        $this->sheets->spreadsheets_values->update(
+            $spreadsheetId,
+            $range,
+            $values,
+            ['valueInputOption' => 'RAW']
+        );
+    }
+
+    private function columnLetter(int $index): string
+    {
+        $letter = '';
+        $index++;
+        while ($index > 0) {
+            $mod = ($index - 1) % 26;
+            $letter = chr(65 + $mod) . $letter;
+            $index = intdiv($index - $mod, 26);
+        }
+        return $letter;
     }
 }
