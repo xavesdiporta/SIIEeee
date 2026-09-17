@@ -1,7 +1,31 @@
 <nav x-data="{ open: false }"
-     class="fixed left-0 top-0 h-full bg-[#3E2D1B]"
-     :class="{'w-64': !open, 'w-full md:w-64': open}">
+     class="fixed left-0 top-0 h-full"
+     :class="{'w-64': !open, 'w-full md:w-64': open}"
+     style="background-color: {{ match(Auth::user()->seccao ?? 'cla') {
+         'lobitos'      => '#7A6520',
+         'exploradores' => '#2D5A3D',
+         'pioneiros'    => '#2A3D6B',
+         'cla'          => '#3E2D1B',
+         default        => '#3E2D1B',
+     } }};">
 
+    @php
+        $seccao = Auth::user()->seccao ?? 'cla';
+        $borderColor = match($seccao) {
+            'lobitos'      => '#9B8432',
+            'exploradores' => '#3E7A52',
+            'pioneiros'    => '#3D5490',
+            'cla'          => '#5C4B3A',
+            default        => '#5C4B3A',
+        };
+        $hoverBg = match($seccao) {
+            'lobitos'      => '#8B7428',
+            'exploradores' => '#366A45',
+            'pioneiros'    => '#344C7F',
+            'cla'          => '#4E3D2B',
+            default        => '#4E3D2B',
+        };
+    @endphp
 
     <!-- Mobile Menu Toggle -->
     <div class="md:hidden absolute right-2 top-2">
@@ -16,7 +40,7 @@
     <div class="h-full flex flex-col overflow-y-auto">
         <!-- Logo -->
         <div class="p-4">
-            <div class="px-4 pb-4 border-b border-[#5C4B3A]">
+            <div class="px-4 pb-4 border-b" style="border-color: {{ $borderColor }};">
                 <a href="{{ route('dashboard') }}">
                     <x-application-mark class="block h-9 w-auto" />
                 </a>
@@ -41,46 +65,54 @@
             @endif
         </div>
 
-        <!-- Teams and Settings Section -->
+        <!-- User Menu Section -->
         <div class="p-4">
-            <div class="px-4 pt-4 border-t border-[#5C4B3A]">
-                <!-- Settings Dropdown -->
-                <div class="relative">
-                    <x-dropdown align="right" width="48">
-                        <x-slot name="trigger">
-                            <div class="inline-flex items-center w-full">
-                                @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
-                                    <button class="flex flex-col items-start w-full text-sm border-2 border-transparent rounded-md focus:outline-none focus:border-gray-300 transition">
-                                        <div class="flex items-center">
-                                            <img class="h-8 w-8 rounded-full object-cover" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" />
-                                            <span class="ml-2 text-gray-500 dark:text-gray-400">{{ Auth::user()->name }}</span>
-                                            <svg class="ml-2 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
-                                            </svg>
-                                        </div>
-                                        @if(Auth::user()->employeeGroup)
-                                            <span class="ml-10 text-sm text-gray-400">{{ Auth::user()->employeeGroup->name }}</span>
-                                        @endif
-                                    </button>
-                                @else
-                                    <span class="inline-flex rounded-md w-full">
-                                        <button type="button" class="inline-flex flex-col items-start w-full px-8 py-3 border border-transparent text-md leading-4 font-medium rounded-md text-gray-500 dark:text-white dark:hover:text-gray-300 focus:outline-none focus:bg-[#4E3D2B] active:bg-gray-50 transition ease-in-out duration-150">
-                                            <div class="flex items-center w-full justify-between">
-                                                <span>{{ Auth::user()->name }}</span>
-                                                <svg class="ms-2 -me-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
-                                                </svg>
-                                            </div>
-                                            @if(Auth::user()->employeeGroup)
-                                                <span class="text-sm text-gray-400">{{ Auth::user()->employeeGroup->name }}</span>
-                                            @endif
-                                        </button>
-                                    </span>
+            <div class="px-4 pt-4 border-t" style="border-color: {{ $borderColor }};">
+                <!-- Settings Dropdown (opens upward) -->
+                <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                    <div @click="open = !open" class="cursor-pointer">
+                        @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
+                            <button class="flex flex-col items-start w-full text-sm border-2 border-transparent rounded-md focus:outline-none focus:border-gray-300 transition">
+                                <div class="flex items-center">
+                                    <img class="h-8 w-8 rounded-full object-cover" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" />
+                                    <span class="ml-2 text-gray-500 dark:text-gray-400">{{ Auth::user()->name }}</span>
+                                    <svg class="ml-2 -mr-0.5 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': open }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                                    </svg>
+                                </div>
+                                @if(Auth::user()->employeeGroup)
+                                    <span class="ml-10 text-sm text-gray-400">{{ Auth::user()->employeeGroup->name }}</span>
                                 @endif
-                            </div>
-                        </x-slot>
+                            </button>
+                        @else
+                            <span class="inline-flex rounded-md w-full">
+                                <button type="button" class="inline-flex flex-col items-start w-full px-8 py-3 border border-transparent text-md leading-4 font-medium rounded-md text-gray-500 dark:text-white dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150" style="background-color: transparent;" onmouseover="this.style.backgroundColor='{{ $hoverBg }}'" onmouseout="this.style.backgroundColor='transparent'">
+                                    <div class="flex items-center w-full justify-between">
+                                        <span>{{ Auth::user()->name }}</span>
+                                        <svg class="ms-2 -me-0.5 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': open }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                                        </svg>
+                                    </div>
+                                    @if(Auth::user()->employeeGroup)
+                                        <span class="text-sm text-gray-400">{{ Auth::user()->employeeGroup->name }}</span>
+                                    @endif
+                                </button>
+                            </span>
+                        @endif
+                    </div>
 
-                        <x-slot name="content">
+                    <!-- Dropdown content (opens UPWARD) -->
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="absolute bottom-full left-0 mb-2 w-48 rounded-md shadow-lg z-50 origin-bottom-left"
+                         style="display: none;"
+                         @click="open = false">
+                        <div class="rounded-md ring-1 ring-black ring-opacity-5 py-1 bg-white dark:bg-gray-700">
                             <!-- Account Management -->
                             <div class="block px-4 py-2 text-xs text-gray-600">
                                 {{ __('Manage Account') }}
@@ -89,12 +121,6 @@
                             <x-dropdown-link href="{{ route('profile.show') }}">
                                 {{ __('Profile') }}
                             </x-dropdown-link>
-
-                            @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
-                                <x-dropdown-link href="{{ route('api-tokens.index') }}">
-                                    {{ __('API Tokens') }}
-                                </x-dropdown-link>
-                            @endif
 
                             <div class="border-t border-gray-200 dark:border-gray-600"></div>
 
@@ -107,8 +133,8 @@
                                     {{ __('Log Out') }}
                                 </x-dropdown-link>
                             </form>
-                        </x-slot>
-                    </x-dropdown>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
