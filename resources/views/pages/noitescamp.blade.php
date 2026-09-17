@@ -2,7 +2,7 @@
     <div class="max-w-[100rem] mx-auto py-8 px-6 sm:px-8 lg:px-10">
 
         @php
-            $totalNoites = collect($activities)->sum('noites');
+            $totalNoites = collect($activities)->sum(fn ($a) => $a['acantonamento'] ? 0 : $a['noites']);
             $maxNoites = collect($people_ranked)->max('total_nights') ?: 1;
         @endphp
 
@@ -105,6 +105,7 @@
                             <th class="sticky top-0 z-10 bg-[#FAF7F5] border-b border-r border-[#E4D5C3] px-3 py-2 text-left text-xs font-bold text-[#776246] uppercase whitespace-nowrap min-w-[180px]">Atividade</th>
                             <th class="sticky top-0 z-10 bg-[#FAF7F5] border-b border-r border-[#E4D5C3] px-3 py-2 text-left text-xs font-bold text-[#776246] uppercase whitespace-nowrap min-w-[140px]">Local</th>
                             <th class="sticky top-0 z-10 bg-[#FAF7F5] border-b border-r border-[#E4D5C3] px-2 py-2 text-center text-xs font-bold text-[#776246] uppercase whitespace-nowrap">Noites</th>
+                            <th class="sticky top-0 z-10 bg-[#FAF7F5] border-b border-r border-[#E4D5C3] px-2 py-2 text-center text-[10px] font-bold text-[#776246] uppercase whitespace-nowrap" title="Noites que não contam para o total">Acant.</th>
                             @foreach($people as $person)
                                 @php
                                     $ini = collect(explode(' ', trim($person['name'])))->filter()->map(fn($w) => mb_substr($w, 0, 1))->take(2)->implode('');
@@ -117,11 +118,16 @@
                         </thead>
                         <tbody>
                         @forelse($activities as $act)
-                            <tr class="hover:bg-[#FAF7F5] transition-colors">
+                            <tr class="hover:bg-[#FAF7F5] transition-colors {{ $act['acantonamento'] ? 'bg-[#FAF7F5]' : '' }}">
                                 <td class="sticky left-0 z-10 bg-white border-b border-r border-[#E4D5C3] px-3 py-2 text-[#776246] whitespace-nowrap">{{ $act['data'] }}</td>
                                 <td class="border-b border-r border-[#E4D5C3] px-3 py-2 text-[#3E2D1B] font-medium">{{ $act['nome'] }}</td>
                                 <td class="border-b border-r border-[#E4D5C3] px-3 py-2 text-[#3E2D1B]">{{ $act['local'] }}</td>
-                                <td class="border-b border-r border-[#E4D5C3] px-2 py-2 text-center font-semibold text-[#3E2D1B]">{{ $act['noites'] }}</td>
+                                <td class="border-b border-r border-[#E4D5C3] px-2 py-2 text-center font-semibold {{ $act['acantonamento'] ? 'text-[#B0977A] line-through' : 'text-[#3E2D1B]' }}">{{ $act['noites'] }}</td>
+                                <td class="border-b border-r border-[#E4D5C3] text-center">
+                                    @if($act['acantonamento'])
+                                        <span class="text-[#B5432A]" title="Não conta para o total">●</span>
+                                    @endif
+                                </td>
                                 @foreach($people as $person)
                                     @php $participou = in_array($person['col'], $act['participantes_cols'], true); @endphp
                                     <td class="border-b border-r border-[#E4D5C3] text-center">
@@ -129,14 +135,14 @@
                                                class="toggle-participacao w-4 h-4 accent-[#B5432A] cursor-pointer"
                                                data-row="{{ $act['row'] }}"
                                                data-col="{{ $person['col'] }}"
-                                               data-noites="{{ $act['noites'] }}"
+                                               data-noites="{{ $act['acantonamento'] ? 0 : $act['noites'] }}"
                                             {{ $participou ? 'checked' : '' }}>
                                     </td>
                                 @endforeach
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 4 + count($people) }}" class="py-10 text-center text-sm text-[#776246]">Sem atividades registadas.</td>
+                                <td colspan="{{ 5 + count($people) }}" class="py-10 text-center text-sm text-[#776246]">Sem atividades registadas.</td>
                             </tr>
                         @endforelse
                         </tbody>

@@ -63,6 +63,11 @@ Route::middleware([
     Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampo'])->name('noites-campo.store');
     Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampo'])->name('noites-campo.toggle');
 
+    //horas de mar
+    Route::get('/horasmar', [ExcelSheetController::class, 'horasMar'])->name('horasmar');
+    Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMar'])->name('horasmar.store');
+    Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMar'])->name('horasmar.toggle');
+
     // Atas do Agrupamento
     Route::post('/atas', [AtaController::class, 'store'])->name('atas.store');
 

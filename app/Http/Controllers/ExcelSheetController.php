@@ -83,10 +83,66 @@ class ExcelSheetController extends Controller
 
     public function horasMar(GoogleSheetsReader $reader)
     {
-        $rows = Cache::remember('sheet.horas_mar', now()->addMinutes(15), fn () =>
-        $reader->readAsRows(config('services.google_drive.files.horas_mar'))
+        $data = Cache::remember('sheet.horas_mar', now()->addMinutes(15), fn () =>
+        $reader->readHorasMar(config('services.google_drive.files.horas_mar'))
         );
 
-        return view('horasmar', ['rows' => $rows]);
+        $data['people_ranked'] = collect($data['people'])
+            ->sortByDesc('total_hours')
+            ->values()
+            ->all();
+
+        return view('pages.horasmar', $data);
+    }
+
+    public function storeAtividadeHorasMar(Request $request, GoogleSheetsReader $reader)
+    {
+        $validated = $request->validate([
+            'nome' => ['required', 'string', 'max:255'],
+            'horas' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $spreadsheetId = config('services.google_drive.files.horas_mar');
+
+        $dadosAtuais = $reader->readHorasMar($spreadsheetId);
+        $ultimaAtividade = end($dadosAtuais['activities']);
+        $afterCol = $ultimaAtividade ? $ultimaAtividade['col'] : 3; // coluna D = nome; a 1ª atividade fica em E
+
+        $reader->appendAtividadeHorasMar(
+            $spreadsheetId,
+            $validated['nome'],
+            (float) $validated['horas'],
+            $afterCol
+        );
+
+        Cache::forget('sheet.horas_mar');
+
+        return back()->with('status', 'Atividade adicionada com sucesso.');
+    }
+
+    public function toggleParticipacaoHorasMar(Request $request, GoogleSheetsReader $reader)
+    {
+        $validated = $request->validate([
+            'row' => ['required', 'integer', 'min:4'],
+            'col' => ['required', 'integer', 'min:4'],
+            'value' => ['required', 'boolean'],
+        ]);
+
+        $spreadsheetId = config('services.google_drive.files.horas_mar');
+
+        // Confirma que a coluna corresponde mesmo a uma atividade real neste
+        // preciso momento (evita escrever em colunas erradas, ex: "Total:").
+        $dadosAtuais = $reader->readHorasMar($spreadsheetId);
+        $colunasValidas = collect($dadosAtuais['activities'])->pluck('col')->all();
+
+        if (! in_array($validated['col'], $colunasValidas, true)) {
+            abort(403, 'Coluna não permitida.');
+        }
+
+        $reader->updateCell($spreadsheetId, $validated['row'], $validated['col'], $validated['value']);
+
+        Cache::forget('sheet.horas_mar');
+
+        return response()->json(['ok' => true]);
     }
 }
