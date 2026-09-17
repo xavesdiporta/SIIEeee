@@ -45,6 +45,12 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('cargo')
                             ->label('Cargo')
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('cne')
+                            ->label('CNE Number')
+                            ->maxLength(10),
+                        Forms\Components\TextInput::make('cp')
+                            ->label('CP Number')
+                            ->maxLength(13),
                     ])
                     ->columns(2),
 
