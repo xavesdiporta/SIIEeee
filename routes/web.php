@@ -61,7 +61,7 @@ Route::middleware([
     // =========================================================================
 
     // 1ª Secção: Alcateia (Lobitos)
-    Route::prefix('alcateia')->name('alcateia.')->group(function () {
+    Route::prefix('alcateia')->name('alcateia.')->middleware(['seccao:lobitos'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'lobitos'])->name('dashboard');
         // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoAlcateia'])->name('noites-campo');
         // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoAlcateia'])->name('noites-campo.store');
@@ -72,7 +72,7 @@ Route::middleware([
     });
 
     // 2ª Secção: Expedição (Exploradores)
-    Route::prefix('expedicao')->name('expedicao.')->group(function () {
+    Route::prefix('expedicao')->name('expedicao.')->middleware(['seccao:exploradores'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'exploradores'])->name('dashboard');
         // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoExpedicao'])->name('noites-campo');
         // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoExpedicao'])->name('noites-campo.store');
@@ -83,7 +83,7 @@ Route::middleware([
     });
 
     // 3ª Secção: Comunidade (Pioneiros)
-    Route::prefix('comunidade')->name('comunidade.')->group(function () {
+    Route::prefix('comunidade')->name('comunidade.')->middleware(['seccao:pioneiros'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'pioneiros'])->name('dashboard');
         // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoComunidade'])->name('noites-campo');
         // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoComunidade'])->name('noites-campo.store');
@@ -94,7 +94,7 @@ Route::middleware([
     });
 
     // 4ª Secção: Clã (Caminheiros)
-    Route::prefix('cla')->name('cla.')->group(function () {
+    Route::prefix('cla')->name('cla.')->middleware(['seccao:cla'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'cla'])->name('dashboard');
 
         // Noites de Campo

@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ]
         );
         $middleware->trustProxies(at: '*');
+        $middleware->alias([
+            'seccao' => \App\Http\Middleware\EnsureSeccao::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
