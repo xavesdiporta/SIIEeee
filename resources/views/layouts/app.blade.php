@@ -100,88 +100,112 @@
     </style>
 </head>
 <body class="font-sans antialiased bg-[#FAF7F5] text-[#665039]">
-<x-banner />
+    <x-banner />
 
-<div class="min-h-screen bg-[#FAF7F5]">
-    @include('components.navigation-menu')
+    <div class="min-h-screen bg-[#FAF7F5]">
+        @include('components.navigation-menu')
 
-    <div class="flex-1 ml-64">
-        <!-- Page Heading -->
-        @if (isset($header))
-            <header class="bg-white shadow-sm rounded-2xl mx-6 mt-6">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                    {{ $header }}
+        <div class="flex-1 ml-64">
+            <!-- Page Heading -->
+            @if (isset($header))
+                <header class="bg-white shadow-sm rounded-2xl mx-6 mt-6">
+                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                        {{ $header }}
+                    </div>
+                </header>
+            @endif
+
+            <!-- Page Content -->
+            <main class="py-6 pr-6" style="background-color: {{ match(Auth::user()->seccao ?? 'cla') {
+                     'lobitos'      => '#7A6520',
+                     'exploradores' => '#2D5A3D',
+                     'pioneiros'    => '#2A3D6B',
+                     'cla'          => '#3E2D1B',
+                     default        => '#3E2D1B',
+                 } }};">
+
+                @php
+                    $seccao = Auth::user()->seccao ?? 'cla';
+                    $borderColor = match($seccao) {
+                        'lobitos'      => '#9B8432',
+                        'exploradores' => '#3E7A52',
+                        'pioneiros'    => '#3D5490',
+                        'cla'          => '#5C4B3A',
+                        default        => '#5C4B3A',
+                    };
+                    $hoverBg = match($seccao) {
+                        'lobitos'      => '#8B7428',
+                        'exploradores' => '#366A45',
+                        'pioneiros'    => '#344C7F',
+                        'cla'          => '#4E3D2B',
+                        default        => '#4E3D2B',
+                    };
+                @endphp
+
+                <div class="bg-[#F2ECE7] rounded-[30px] py-6 pr-6">
+                    {{ $slot }}
                 </div>
-            </header>
-        @endif
-
-        <!-- Page Content -->
-        <main class="py-6 pr-6" style="background-color: #3E2D1B;">
-            <div class="bg-[#F2ECE7] rounded-[30px] py-6 pr-6">
-                {{ $slot }}
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
-</div>
 
+    @stack('modals')
 
-@stack('modals')
+    @livewireScripts
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.18/index.global.min.js'></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Função para ajustar o tamanho dos inputs com margem de segurança
+            function adjustInputWidth(input) {
+                input.style.width = (input.value.length + 0.60) + 'ch';
+            }
 
-@livewireScripts
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.18/index.global.min.js'></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Função para ajustar o tamanho dos inputs com margem de segurança
-        function adjustInputWidth(input) {
-            input.style.width = (input.value.length + 0.60) + 'ch';
-        }
+            // Ajusta todos os inputs com a classe auto-size
+            document.querySelectorAll('.auto-size').forEach(input => {
+                adjustInputWidth(input);
 
-        // Ajusta todos os inputs com a classe auto-size
-        document.querySelectorAll('.auto-size').forEach(input => {
-            adjustInputWidth(input);
-
-            input.addEventListener('change', () => adjustInputWidth(input));
-            input.addEventListener('input', () => adjustInputWidth(input));
-            input.addEventListener('focus', () => adjustInputWidth(input));
+                input.addEventListener('change', () => adjustInputWidth(input));
+                input.addEventListener('input', () => adjustInputWidth(input));
+                input.addEventListener('focus', () => adjustInputWidth(input));
+            });
         });
-    });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
-        if (!calendarEl) return; // esta página não tem calendário, não faz sentido continuar
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            if (!calendarEl) return; // esta página não tem calendário, não faz sentido continuar
 
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'pt',
-            height: 'auto',
-            headerToolbar: {
-                left: 'prev,next',
-                center: 'title',
-                right: 'dayGridMonth,listMonth',
-            },
-            selectable: true,
-            events: '/api/events',
-            dateClick: function (info) {
-                // Se existir o formulário de Atas na página, pré-preenche o dia e leva o utilizador até lá
-                const diaInput = document.getElementById('dia');
-                if (diaInput) {
-                    diaInput.value = info.dateStr;
-                    diaInput.closest('form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    diaInput.focus();
-                }
-            },
-            eventClick: function (info) {
-                if (info.event.url) {
-                    window.open(info.event.url, '_blank');
-                    info.jsEvent.preventDefault();
-                }
-            },
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pt',
+                height: 'auto',
+                headerToolbar: {
+                    left: 'prev,next',
+                    center: 'title',
+                    right: 'dayGridMonth,listMonth',
+                },
+                selectable: true,
+                events: '/api/events',
+                dateClick: function (info) {
+                    // Se existir o formulário de Atas na página, pré-preenche o dia e leva o utilizador até lá
+                    const diaInput = document.getElementById('dia');
+                    if (diaInput) {
+                        diaInput.value = info.dateStr;
+                        diaInput.closest('form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        diaInput.focus();
+                    }
+                },
+                eventClick: function (info) {
+                    if (info.event.url) {
+                        window.open(info.event.url, '_blank');
+                        info.jsEvent.preventDefault();
+                    }
+                },
+            });
+
+            calendar.render();
         });
-
-        calendar.render();
-    });
-</script>
+    </script>
 
 </body>
 </html>
