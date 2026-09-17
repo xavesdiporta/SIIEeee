@@ -173,6 +173,30 @@
                         </div>
                     </div>
 
+                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Nº Cartão CP</p>
+                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ Auth::user()->cp_card_number ?? 'Não definido' }}</p>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-9 4h16a1 1 0 001-1V6a1 1 0 00-1-1H4a1 1 0 00-1 1v12a1 1 0 001 1z" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Nº CNE</p>
+                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ Auth::user()->cne_number ?? 'Não definido' }}</p>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 

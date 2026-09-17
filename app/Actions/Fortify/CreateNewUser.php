@@ -25,6 +25,8 @@ class CreateNewUser implements CreatesNewUsers
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'seccao' => ['required', 'string', 'in:lobitos,exploradores,pioneiros,cla'],
+            'cp' => ['required', 'integer'],
+            'cne' => ['required', 'integer'],
             'password' => $this->passwordRules(),
             'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature() ? ['accepted', 'required'] : '',
         ])->validate();
@@ -33,23 +35,11 @@ class CreateNewUser implements CreatesNewUsers
             return tap(User::create([
                 'name' => $input['name'],
                 'email' => $input['email'],
+                'cp_card_number' => $input['cp'],
+                'cne_number' => $input['cne'],
                 'seccao' => $input['seccao'],
                 'password' => Hash::make($input['password']),
-            ]), function (User $user) {
-                $this->createTeam($user);
-            });
+            ]));
         });
-    }
-
-    /**
-     * Create a personal team for the user.
-     */
-    protected function createTeam(User $user): void
-    {
-        $user->ownedTeams()->save(Team::forceCreate([
-            'user_id' => $user->id,
-            'name' => explode(' ', $user->name, 2)[0]."'s Team",
-            'personal_team' => true,
-        ]));
     }
 }
