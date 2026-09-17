@@ -56,17 +56,61 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/allcalendar', [DashboardController::class, 'allcalendar'])->name('allcalendar');
-    Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampo'])->name('noites-campo');
-    Route::get('/horasmar', [ExcelSheetController::class, 'horasMar'])->name('horasmar');
+    // =========================================================================
+    // Secções do Agrupamento
+    // =========================================================================
 
-    //more noites e campo
-    Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampo'])->name('noites-campo.store');
-    Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampo'])->name('noites-campo.toggle');
+    // 1ª Secção: Alcateia (Lobitos)
+    Route::prefix('alcateia')->name('alcateia.')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'lobitos'])->name('dashboard');
+        // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoAlcateia'])->name('noites-campo');
+        // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoAlcateia'])->name('noites-campo.store');
+        // Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampoAlcateia'])->name('noites-campo.toggle');
+        // Route::get('/horasmar', [ExcelSheetController::class, 'horasMarAlcateia'])->name('horasmar');
+        // Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMarAlcateia'])->name('horasmar.store');
+        // Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMarAlcateia'])->name('horasmar.toggle');
+    });
 
-    //horas de mar
-    Route::get('/horasmar', [ExcelSheetController::class, 'horasMar'])->name('horasmar');
-    Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMar'])->name('horasmar.store');
-    Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMar'])->name('horasmar.toggle');
+    // 2ª Secção: Expedição (Exploradores)
+    Route::prefix('expedicao')->name('expedicao.')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'exploradores'])->name('dashboard');
+        // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoExpedicao'])->name('noites-campo');
+        // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoExpedicao'])->name('noites-campo.store');
+        // Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampoExpedicao'])->name('noites-campo.toggle');
+        // Route::get('/horasmar', [ExcelSheetController::class, 'horasMarExpedicao'])->name('horasmar');
+        // Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMarExpedicao'])->name('horasmar.store');
+        // Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMarExpedicao'])->name('horasmar.toggle');
+    });
+
+    // 3ª Secção: Comunidade (Pioneiros)
+    Route::prefix('comunidade')->name('comunidade.')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'pioneiros'])->name('dashboard');
+        // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoComunidade'])->name('noites-campo');
+        // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoComunidade'])->name('noites-campo.store');
+        // Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampoComunidade'])->name('noites-campo.toggle');
+        // Route::get('/horasmar', [ExcelSheetController::class, 'horasMarComunidade'])->name('horasmar');
+        // Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMarComunidade'])->name('horasmar.store');
+        // Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMarComunidade'])->name('horasmar.toggle');
+    });
+
+    // 4ª Secção: Clã (Caminheiros)
+    Route::prefix('cla')->name('cla.')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'cla'])->name('dashboard');
+
+        // Noites de Campo
+        Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampo'])->name('noites-campo');
+        Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampo'])->name('noites-campo.store');
+        Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampo'])->name('noites-campo.toggle');
+
+        // Horas de Mar
+        Route::get('/horasmar', [ExcelSheetController::class, 'horasMar'])->name('horasmar');
+        Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMar'])->name('horasmar.store');
+        Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMar'])->name('horasmar.toggle');
+    });
+
+    // Redirecionamentos de retrocompatibilidade
+    Route::redirect('/noitesdecampo', '/cla/noitesdecampo');
+    Route::redirect('/horasmar', '/cla/horasmar');
 
     // Atas do Agrupamento
     Route::post('/atas', [AtaController::class, 'store'])->name('atas.store');

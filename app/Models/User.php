@@ -43,6 +43,7 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'cargo',
+        'seccao',
     ];
 
     /**
@@ -96,5 +97,16 @@ class User extends Authenticatable implements FilamentUser
     public function trialIsUsed()
     {
         return $this->trial_is_used;
+    }
+
+    public function getSeccaoNomeAttribute(): string
+    {
+        return match ($this->seccao) {
+            'lobitos'      => 'Lobitos',
+            'exploradores' => 'Exploradores',
+            'pioneiros'    => 'Pioneiros',
+            'cla'          => 'Clã',
+            default        => 'Clã',
+        };
     }
 }

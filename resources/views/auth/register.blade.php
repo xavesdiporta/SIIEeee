@@ -20,6 +20,17 @@
             </div>
 
             <div class="mt-4">
+                <x-label for="seccao" value="{{ __('Secção') }}" />
+                <select id="seccao" name="seccao" required class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                    <option value="" disabled {{ old('seccao') ? '' : 'selected' }}>{{ __('Seleciona a tua secção...') }}</option>
+                    <option value="lobitos" {{ old('seccao') == 'lobitos' ? 'selected' : '' }}>Lobitos (Alcateia - Amarela)</option>
+                    <option value="exploradores" {{ old('seccao') == 'exploradores' ? 'selected' : '' }}>Exploradores (Expedição - Verde)</option>
+                    <option value="pioneiros" {{ old('seccao') == 'pioneiros' ? 'selected' : '' }}>Pioneiros (Comunidade - Azul)</option>
+                    <option value="cla" {{ old('seccao') == 'cla' ? 'selected' : '' }}>Clã (Caminheiros - Vermelho/Castanho)</option>
+                </select>
+            </div>
+
+            <div class="mt-4">
                 <x-label for="password" value="{{ __('Password') }}" />
                 <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
             </div>

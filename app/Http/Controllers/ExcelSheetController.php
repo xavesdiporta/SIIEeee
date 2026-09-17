@@ -14,8 +14,13 @@ class ExcelSheetController extends Controller
 
     public function noitesCampo(GoogleSheetsReader $reader)
     {
+        $spreadsheetId = config('services.google_drive.files.noites_campo');
+        if (! $spreadsheetId) {
+            abort(500, 'A folha Google Sheets não está configurada (DRIVE_FILE_NOITES_CAMPO em falta no ficheiro de ambiente).');
+        }
+
         $data = Cache::remember('sheet.noites_campo', now()->addMinutes(15), fn () =>
-        $reader->readNoitesCampo(config('services.google_drive.files.noites_campo'))
+            $reader->readNoitesCampo($spreadsheetId)
         );
 
         $data['people_ranked'] = collect($data['people'])
@@ -36,6 +41,9 @@ class ExcelSheetController extends Controller
         ]);
 
         $spreadsheetId = config('services.google_drive.files.noites_campo');
+        if (! $spreadsheetId) {
+            abort(500, 'ID da folha Google Sheets (DRIVE_FILE_NOITES_CAMPO) não configurado.');
+        }
 
         // Vai buscar dados frescos (não a cache) para ter a certeza de qual é
         // mesmo a última linha real de atividade neste preciso momento.
@@ -69,8 +77,13 @@ class ExcelSheetController extends Controller
             abort(403, 'Coluna não permitida.');
         }
 
+        $spreadsheetId = config('services.google_drive.files.noites_campo');
+        if (! $spreadsheetId) {
+            abort(500, 'ID da folha Google Sheets (DRIVE_FILE_NOITES_CAMPO) não configurado.');
+        }
+
         $reader->updateCell(
-            config('services.google_drive.files.noites_campo'),
+            $spreadsheetId,
             $validated['row'],
             $validated['col'],
             $validated['value']
@@ -83,8 +96,13 @@ class ExcelSheetController extends Controller
 
     public function horasMar(GoogleSheetsReader $reader)
     {
+        $spreadsheetId = config('services.google_drive.files.horas_mar');
+        if (! $spreadsheetId) {
+            abort(500, 'A folha Google Sheets não está configurada (DRIVE_FILE_HORAS_MAR em falta no ficheiro de ambiente).');
+        }
+
         $data = Cache::remember('sheet.horas_mar', now()->addMinutes(15), fn () =>
-        $reader->readHorasMar(config('services.google_drive.files.horas_mar'))
+            $reader->readHorasMar($spreadsheetId)
         );
 
         $data['people_ranked'] = collect($data['people'])
@@ -103,6 +121,9 @@ class ExcelSheetController extends Controller
         ]);
 
         $spreadsheetId = config('services.google_drive.files.horas_mar');
+        if (! $spreadsheetId) {
+            abort(500, 'ID da folha Google Sheets (DRIVE_FILE_HORAS_MAR) não configurado.');
+        }
 
         $dadosAtuais = $reader->readHorasMar($spreadsheetId);
         $ultimaAtividade = end($dadosAtuais['activities']);
@@ -129,6 +150,9 @@ class ExcelSheetController extends Controller
         ]);
 
         $spreadsheetId = config('services.google_drive.files.horas_mar');
+        if (! $spreadsheetId) {
+            abort(500, 'ID da folha Google Sheets (DRIVE_FILE_HORAS_MAR) não configurado.');
+        }
 
         // Confirma que a coluna corresponde mesmo a uma atividade real neste
         // preciso momento (evita escrever em colunas erradas, ex: "Total:").

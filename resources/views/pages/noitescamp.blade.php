@@ -69,7 +69,7 @@
                 </div>
 
                 {{-- Formulário de nova atividade (escondido por omissão) --}}
-                <form id="form-nova-atividade" method="POST" action="{{ route('noites-campo.store') }}"
+                <form id="form-nova-atividade" method="POST" action="{{ route('cla.noites-campo.store') }}"
                       class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#FAF7F5] border border-[#E4D5C3] rounded-2xl p-4">
                     @csrf
                     <div>
@@ -165,7 +165,7 @@
                     const personCol = checkbox.dataset.col;
                     checkbox.disabled = true;
 
-                    fetch('{{ route("noites-campo.toggle") }}', {
+                    fetch('{{ route("cla.noites-campo.toggle") }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

@@ -31,10 +31,10 @@
             <x-nav-link href="{{ route('allcalendar')}}" :active="request()->routeIs('allcalendar')" class="block w-full">
                 {{ __('O meu Progresso') }}
             </x-nav-link>
-            <x-nav-link href="{{ route('noites-campo')}}" :active="request()->routeIs('noites-campo')" class="block w-full">
+            <x-nav-link href="{{ route('cla.noites-campo')}}" :active="request()->routeIs('cla.noites-campo*')" class="block w-full">
                 {{ __('Noites de Campo') }}
             </x-nav-link>
-            <x-nav-link href="{{ route('horasmar')}}" :active="request()->routeIs('horasmar')" class="block w-full">
+            <x-nav-link href="{{ route('cla.horasmar')}}" :active="request()->routeIs('cla.horasmar*')" class="block w-full">
                 {{ __('Horas de Mar') }}
             </x-nav-link>
         </div>

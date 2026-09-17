@@ -34,6 +34,16 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('cargo')
                     ->label('Cargo')
                     ->maxLength(255),
+                Forms\Components\Select::make('seccao')
+                    ->label('Secção')
+                    ->options([
+                        'lobitos' => 'Lobitos (Alcateia)',
+                        'exploradores' => 'Exploradores (Expedição)',
+                        'pioneiros' => 'Pioneiros (Comunidade)',
+                        'cla' => 'Clã (Caminheiros)',
+                    ])
+                    ->default('cla')
+                    ->required(),
                 Forms\Components\Toggle::make('is_admin'),
             ])
             ->columns(1);
@@ -47,6 +57,23 @@ class UserResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('seccao')
+                    ->label('Secção')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'lobitos' => 'Lobitos',
+                        'exploradores' => 'Exploradores',
+                        'pioneiros' => 'Pioneiros',
+                        'cla' => 'Clã',
+                        default => $state ?? 'Clã',
+                    })
+                    ->color(fn ($state) => match ($state) {
+                        'lobitos' => 'warning',
+                        'exploradores' => 'success',
+                        'pioneiros' => 'info',
+                        'cla' => 'danger',
+                        default => 'gray',
+                    }),
                 Tables\Columns\IconColumn::make('trial_is_used')
                     ->sortable()
                     ->boolean(),

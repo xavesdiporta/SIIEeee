@@ -68,7 +68,7 @@
                     </button>
                 </div>
 
-                <form id="form-nova-atividade-mar" method="POST" action="{{ route('horasmar.store') }}"
+                <form id="form-nova-atividade-mar" method="POST" action="{{ route('cla.horasmar.store') }}"
                       class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#FAF7F5] border border-[#E4D5C3] rounded-2xl p-4">
                     @csrf
                     <div class="flex-1">
@@ -144,7 +144,7 @@
                     const personRow = checkbox.dataset.row;
                     checkbox.disabled = true;
 
-                    fetch('{{ route("horasmar.toggle") }}', {
+                    fetch('{{ route("cla.horasmar.toggle") }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
