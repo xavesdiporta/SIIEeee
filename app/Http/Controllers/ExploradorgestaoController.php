@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class ExploradorGestaoController extends Controller
+class ExploradorgestaoController extends Controller
 {
     // Mesma estrutura de dimensões/objetivos usada na página individual do Explorador.
     protected function categorias(): array

@@ -4,7 +4,7 @@ use App\Http\Controllers\Auth\MagicLinkController;
 use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ExploradorGestaoController;
+use App\Http\Controllers\ExploradorgestaoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OgImageController;
 use App\Http\Controllers\Payments\LemonSqueezyController;
@@ -72,9 +72,9 @@ Route::middleware([
     // 2ª Secção: Expedição (Exploradores)
     Route::prefix('expedicao')->name('expedicao.')->middleware(['seccao:exploradores'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'exploradores'])->name('dashboard');
-        Route::get('/exploradores/gestao', [ExploradorGestaoController::class, 'index'])->name('exploradores-gestao');
-        Route::post('/exploradores/gestao/user', [ExploradorGestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
-        Route::post('/exploradores/gestao/toggle', [ExploradorGestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
+        Route::get('/exploradores/gestao', [ExploradorgestaoController::class, 'index'])->name('exploradores-gestao');
+        Route::post('/exploradores/gestao/user', [ExploradorgestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
+        Route::post('/exploradores/gestao/toggle', [ExploradorgestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
     });
 
     // 3ª Secção: Comunidade (Pioneiros)
