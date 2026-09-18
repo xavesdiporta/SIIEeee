@@ -26,22 +26,21 @@ class ExploradorgestaoController extends Controller
     public function index()
     {
         $categorias = $this->categorias();
-        $totalRefsAll = collect($categorias)->sum(fn ($c) => count($c['refs']));
+        $totalRefsAll = collect($categorias)->sum(fn ($c) => count($c['refs'] ?? []));
 
-        $exploradores = User::where('seccao', 'exploradores')->orderBy('name')->get();
+        $exploradores = User::where('seccao', 'exploradores')->orderBy('name')->get() ?? collect();
 
-        // matriz: [user_id => [ref1, ref2, ...]] com as referências já aprovadas
         $matriz = ProgressNote::whereIn('user_id', $exploradores->pluck('id'))
             ->where('status', 'approved')
             ->get()
             ->groupBy('user_id')
             ->map(fn ($notas) => $notas->pluck('reference')->all());
 
-        return view('pages.exploradores', [
-            'categorias' => $categorias,
+        return view('pages.exploradores-gestao', [
+            'categorias'   => $categorias,
             'totalRefsAll' => $totalRefsAll,
             'exploradores' => $exploradores,
-            'matriz' => $matriz,
+            'matriz'       => $matriz,
         ]);
     }
 

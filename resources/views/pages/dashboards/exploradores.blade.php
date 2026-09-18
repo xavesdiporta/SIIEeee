@@ -9,8 +9,7 @@
                     Gestão · Exploradores
                 </div>
                 <h1 class="text-xl font-bold text-[#14532D]">Progresso dos Exploradores</h1>
-                <p class="text-sm text-[#166534] mt-1">{{ count($exploradores) }} exploradores registados</p>
-            </div>
+                <p class="text-sm text-[#166534] mt-1">{{ count($exploradores ?? []) }} exploradores registados</p>            </div>
         </div>
 
         @if (session('status'))
