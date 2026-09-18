@@ -33,7 +33,7 @@
             </div>
 
             {{-- Formulário: por agora só o nome --}}
-            <form id="form-novo-explorador" method="POST" action="{{ route('exploradores-gestao.store-user') }}"
+            <form id="form-novo-explorador" method="POST" action="{{ route('expedicao.exploradores-gestao.store-user') }}"
                   class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-4">
                 @csrf
                 <div class="flex-1">
@@ -123,7 +123,7 @@
                     const row = checkbox.closest('tr');
                     checkbox.disabled = true;
 
-                    fetch('{{ route("exploradores-gestao.toggle") }}', {
+                    fetch('{{ route("expedicao.exploradores-gestao.toggle") }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
