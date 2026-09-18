@@ -71,12 +71,9 @@ Route::middleware([
     // 2ª Secção: Expedição (Exploradores)
     Route::prefix('expedicao')->name('expedicao.')->middleware(['seccao:exploradores'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'exploradores'])->name('dashboard');
-        // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoExpedicao'])->name('noites-campo');
-        // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoExpedicao'])->name('noites-campo.store');
-        // Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampoExpedicao'])->name('noites-campo.toggle');
-        // Route::get('/horasmar', [ExcelSheetController::class, 'horasMarExpedicao'])->name('horasmar');
-        // Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMarExpedicao'])->name('horasmar.store');
-        // Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMarExpedicao'])->name('horasmar.toggle');
+        Route::get('/exploradores/gestao', [ExploradorGestaoController::class, 'index'])->name('exploradores-gestao');
+        Route::post('/exploradores/gestao/user', [ExploradorGestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
+        Route::post('/exploradores/gestao/toggle', [ExploradorGestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
     });
 
     // 3ª Secção: Comunidade (Pioneiros)
