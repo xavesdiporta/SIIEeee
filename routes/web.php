@@ -75,8 +75,7 @@ Route::middleware([
         Route::get('/exploradores/gestao', [ExploradorgestaoController::class, 'index'])->name('exploradores-gestao');
         Route::post('/exploradores/gestao/user', [ExploradorgestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
         Route::post('/exploradores/gestao/toggle', [ExploradorgestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
-        Route::post('/exploradores/gestao/toggle-bulk', [ExploradorGestaoController::class, 'toggleObjetivoBulk'])->name('exploradores-gestao.toggle-bulk');
-    });
+        Route::post('/exploradores/gestao/toggle-bulk', [ExploradorGestaoController::class, 'toggleObjetivoBulk'])->name('exploradores-gestao.toggle-bulk');    });
 
     // 3ª Secção: Comunidade (Pioneiros)
     Route::prefix('comunidade')->name('comunidade.')->middleware(['seccao:pioneiros'])->group(function () {

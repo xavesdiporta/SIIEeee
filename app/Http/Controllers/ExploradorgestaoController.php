@@ -8,9 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class ExploradorgestaoController extends Controller
+class ExploradorGestaoController extends Controller
 {
-    // Mesma estrutura de dimensões/objetivos usada na página individual do Explorador.
     protected function categorias(): array
     {
         return [
@@ -21,6 +20,21 @@ class ExploradorgestaoController extends Controller
             ['label' => 'I', 'name' => 'Intelectual', 'color' => '#f97316', 'refs' => ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7']],
             ['label' => 'S', 'name' => 'Social', 'color' => '#eab308', 'refs' => ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']],
         ];
+    }
+
+    /**
+     * Dado um reference (ex: "F3"), devolve o label da categoria a que pertence (ex: "F").
+     * Fallback: as duas primeiras letras/caracteres não numéricos do reference.
+     */
+    protected function categoriaDoRef(string $reference): string
+    {
+        foreach ($this->categorias() as $cat) {
+            if (in_array($reference, $cat['refs'], true)) {
+                return $cat['label'];
+            }
+        }
+
+        return preg_replace('/[0-9]/', '', $reference) ?: $reference;
     }
 
     public function index()
@@ -36,11 +50,11 @@ class ExploradorgestaoController extends Controller
             ->groupBy('user_id')
             ->map(fn ($notas) => $notas->pluck('reference')->all());
 
-        return view('pages.dashboards.exploradores', [
-            'categorias'   => $categorias,
+        return view('pages.exploradores-gestao', [
+            'categorias' => $categorias,
             'totalRefsAll' => $totalRefsAll,
             'exploradores' => $exploradores,
-            'matriz'       => $matriz,
+            'matriz' => $matriz,
         ]);
     }
 
@@ -52,7 +66,7 @@ class ExploradorgestaoController extends Controller
 
         $baseSlug = Str::slug($validated['nome'], '');
         $email = $baseSlug . '@gmail.com';
-        
+
         $contador = 1;
         while (User::where('email', $email)->exists()) {
             $contador++;
@@ -80,7 +94,12 @@ class ExploradorgestaoController extends Controller
         if ($validated['value']) {
             ProgressNote::updateOrCreate(
                 ['user_id' => $validated['user_id'], 'reference' => $validated['reference']],
-                ['status' => 'approved']
+                [
+                    'status' => 'approved',
+                    'category' => $this->categoriaDoRef($validated['reference']),
+                    'proposal' => '',
+                    'note' => '',
+                ]
             );
         } else {
             ProgressNote::where('user_id', $validated['user_id'])
@@ -104,7 +123,12 @@ class ExploradorgestaoController extends Controller
             if ($change['value']) {
                 ProgressNote::updateOrCreate(
                     ['user_id' => $change['user_id'], 'reference' => $change['reference']],
-                    ['status' => 'approved']
+                    [
+                        'status' => 'approved',
+                        'category' => $this->categoriaDoRef($change['reference']),
+                        'proposal' => '',
+                        'note' => '',
+                    ]
                 );
             } else {
                 ProgressNote::where('user_id', $change['user_id'])
