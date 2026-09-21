@@ -48,7 +48,6 @@
             <div class="overflow-auto -mx-2 max-h-[640px] border border-[#BBF7D0] rounded-xl">
                 <table class="border-collapse text-sm min-w-full">
                     <thead>
-                    {{-- Linha 1: nome da dimensão, agrupando as colunas --}}
                     <tr>
                         <th rowspan="2" class="sticky top-0 left-0 z-30 bg-[#F0FDF4] border-b border-r border-[#BBF7D0] px-3 py-2 text-left text-xs font-bold text-[#166534] uppercase whitespace-nowrap min-w-[160px]">Nome</th>
                         <th rowspan="2" class="sticky top-0 z-20 bg-[#F0FDF4] border-b border-r-2 border-[#BBF7D0] px-2 py-2 text-center text-xs font-bold text-[#166534] uppercase whitespace-nowrap">Total</th>
@@ -60,7 +59,6 @@
                             </th>
                         @endforeach
                     </tr>
-                    {{-- Linha 2: código de cada objetivo --}}
                     <tr>
                         @foreach($categorias as $cat)
                             @foreach($cat['refs'] as $ref)
@@ -87,12 +85,13 @@
                             @foreach($categorias as $cat)
                                 @foreach($cat['refs'] as $ref)
                                     @php $marcado = in_array($ref, $refsDoUser, true); @endphp
-                                    <td class="border-b border-r border-[#E4F4E8] text-center">
+                                    <td class="border-b border-r border-[#E4F4E8] text-center cel-objetivo">
                                         <input type="checkbox"
                                                class="toggle-objetivo w-4 h-4 cursor-pointer"
                                                style="accent-color: {{ $cat['color'] }};"
                                                data-user="{{ $explorador->id }}"
                                                data-ref="{{ $ref }}"
+                                               data-original="{{ $marcado ? '1' : '0' }}"
                                             {{ $marcado ? 'checked' : '' }}>
                                     </td>
                                 @endforeach
@@ -108,47 +107,105 @@
                     </tbody>
                 </table>
             </div>
+            <div class="flex items-center justify-between mt-4">
+                <p id="alteracoes-info" class="text-xs text-[#166534]">Sem alterações por gravar.</p>
+                <button type="button" id="btn-guardar-alteracoes" disabled
+                        class="inline-flex items-center gap-2 bg-[#16A34A] hover:bg-[#15803D] disabled:bg-[#BBF7D0] disabled:cursor-not-allowed disabled:text-[#166534] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Enviar para a base de dados
+                </button>
+            </div>
         </div>
-
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const btnGuardar = document.getElementById('btn-guardar-alteracoes');
+            const infoAlteracoes = document.getElementById('alteracoes-info');
+
+            // Guarda as alterações pendentes por "user-ref" -> {user_id, reference, value}
+            const pendentes = new Map();
+
+            function atualizarBarra() {
+                const n = pendentes.size;
+                btnGuardar.disabled = n === 0;
+                infoAlteracoes.textContent = n === 0
+                    ? 'Sem alterações por gravar.'
+                    : n + ' etapa(s) por gravar.';
+            }
 
             document.querySelectorAll('.toggle-objetivo').forEach(function (checkbox) {
                 checkbox.addEventListener('change', function () {
-                    const original = checkbox.checked;
+                    const userId = checkbox.dataset.user;
+                    const ref = checkbox.dataset.ref;
+                    const original = checkbox.dataset.original === '1';
+                    const chave = userId + '-' + ref;
                     const row = checkbox.closest('tr');
-                    checkbox.disabled = true;
+                    const cel = checkbox.closest('.cel-objetivo');
 
-                    fetch('{{ route("expedicao.exploradores-gestao.toggle") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                        },
-                        body: JSON.stringify({
-                            user_id: parseInt(checkbox.dataset.user, 10),
-                            reference: checkbox.dataset.ref,
-                            value: original,
-                        }),
-                    })
-                        .then(function (res) {
-                            if (!res.ok) throw new Error('Falhou');
-                            checkbox.disabled = false;
+                    // Atualiza o total da linha localmente (só visual, ainda não gravado)
+                    const valorTotal = row.querySelector('.valor-total');
+                    const partes = valorTotal.textContent.split('/');
+                    let atual = parseInt(partes[0], 10) + (checkbox.checked ? 1 : -1);
+                    valorTotal.textContent = atual + '/' + partes[1].trim();
 
-                            const valorTotal = row.querySelector('.valor-total');
-                            const partes = valorTotal.textContent.split('/');
-                            let atual = parseInt(partes[0], 10) + (original ? 1 : -1);
-                            valorTotal.textContent = atual + '/' + partes[1].trim();
-                        })
-                        .catch(function () {
-                            checkbox.checked = !original;
-                            checkbox.disabled = false;
-                            alert('Não foi possível guardar. Tenta outra vez.');
+                    if (checkbox.checked === original) {
+                        // Voltou ao estado original: já não é uma alteração pendente
+                        pendentes.delete(chave);
+                        cel.classList.remove('bg-[#FEF9C3]');
+                    } else {
+                        pendentes.set(chave, {
+                            user_id: parseInt(userId, 10),
+                            reference: ref,
+                            value: checkbox.checked,
                         });
+                        cel.classList.add('bg-[#FEF9C3]'); // destaque amarelo = por gravar
+                    }
+
+                    atualizarBarra();
                 });
+            });
+
+            btnGuardar.addEventListener('click', function () {
+                if (pendentes.size === 0) return;
+
+                const changes = Array.from(pendentes.values());
+                btnGuardar.disabled = true;
+                btnGuardar.textContent = 'A gravar...';
+
+                fetch('{{ route("expedicao.exploradores-gestao.toggle-bulk") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ changes: changes }),
+                })
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('Falhou');
+                        return res.json();
+                    })
+                    .then(function () {
+                        // Sucesso: marca tudo como gravado
+                        pendentes.forEach(function (mudanca) {
+                            const checkbox = document.querySelector(
+                                '.toggle-objetivo[data-user="' + mudanca.user_id + '"][data-ref="' + mudanca.reference + '"]'
+                            );
+                            checkbox.dataset.original = mudanca.value ? '1' : '0';
+                            checkbox.closest('.cel-objetivo').classList.remove('bg-[#FEF9C3]');
+                        });
+                        pendentes.clear();
+                        atualizarBarra();
+                        btnGuardar.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Enviar para a base de dados';
+                    })
+                    .catch(function () {
+                        alert('Não foi possível gravar as alterações. Tenta outra vez.');
+                        btnGuardar.disabled = false;
+                        btnGuardar.textContent = 'Enviar para a base de dados';
+                    });
             });
         });
     </script>

@@ -85,4 +85,29 @@ class ExploradorgestaoController extends Controller
 
         return response()->json(['ok' => true]);
     }
+
+    public function toggleObjetivoBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'changes' => ['required', 'array', 'min:1'],
+            'changes.*.user_id' => ['required', 'integer', 'exists:users,id'],
+            'changes.*.reference' => ['required', 'string', 'max:10'],
+            'changes.*.value' => ['required', 'boolean'],
+        ]);
+
+        foreach ($validated['changes'] as $change) {
+            if ($change['value']) {
+                ProgressNote::updateOrCreate(
+                    ['user_id' => $change['user_id'], 'reference' => $change['reference']],
+                    ['status' => 'approved']
+                );
+            } else {
+                ProgressNote::where('user_id', $change['user_id'])
+                    ->where('reference', $change['reference'])
+                    ->delete();
+            }
+        }
+
+        return response()->json(['ok' => true, 'count' => count($validated['changes'])]);
+    }
 }
