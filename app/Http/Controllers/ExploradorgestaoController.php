@@ -50,13 +50,18 @@ class ExploradorgestaoController extends Controller
             'nome' => ['required', 'string', 'max:255'],
         ]);
 
-        // Conta sem login real — só para existir um user_id a associar ao progresso.
-        // O email é interno e nunca é mostrado nem usado para entrar na app.
-        $emailInterno = Str::slug($validated['nome']) . '-' . Str::random(6) . '@exploradores.interno';
+        $baseSlug = Str::slug($validated['nome'], '');
+        $email = $baseSlug . '@gmail.com';
+        
+        $contador = 1;
+        while (User::where('email', $email)->exists()) {
+            $contador++;
+            $email = $baseSlug . $contador . '@gmail.com';
+        }
 
         User::create([
             'name' => $validated['nome'],
-            'email' => $emailInterno,
+            'email' => $email,
             'seccao' => 'exploradores',
             'password' => Hash::make(Str::random(32)),
         ]);
