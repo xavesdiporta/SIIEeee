@@ -99,10 +99,22 @@
         }
     </style>
 </head>
-<body class="font-sans antialiased bg-[#FAF7F5] text-[#665039]">
+<body class="font-sans antialiased" style="background-color: {{ match(Auth::user()->seccao ?? 'cla') {
+         'lobitos'      => '#FBF8ED',
+         'exploradores' => '#EEF7F1',
+         'pioneiros'    => '#EEF0F7',
+         'cla'          => '#FAF7F5',
+         default        => '#FAF7F5',
+     } }};">
     <x-banner />
 
-    <div class="min-h-screen bg-[#FAF7F5]">
+    <div class="min-h-screen" style="background-color: {{ match(Auth::user()->seccao ?? 'cla') {
+             'lobitos'      => '#FBF8ED',
+             'exploradores' => '#EEF7F1',
+             'pioneiros'    => '#EEF0F7',
+             'cla'          => '#FAF7F5',
+             default        => '#FAF7F5',
+         } }};">
         @include('components.navigation-menu')
 
         <div class="flex-1 ml-64">
