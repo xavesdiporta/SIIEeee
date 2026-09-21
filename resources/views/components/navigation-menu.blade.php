@@ -52,16 +52,17 @@
             <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" class="block w-full">
                 {{ __('A minha Área') }}
             </x-nav-link>
-            <x-nav-link href="{{ route('allcalendar')}}" :active="request()->routeIs('allcalendar')" class="block w-full">
-                {{ __('O meu Progresso') }}
-            </x-nav-link>
-            @if(Auth::user()->seccao === 'cla' || (Auth::user()->is_admin ?? false))
-            <x-nav-link href="{{ route('cla.noites-campo')}}" :active="request()->routeIs('cla.noites-campo*')" class="block w-full">
-                {{ __('Noites de Campo') }}
-            </x-nav-link>
-            <x-nav-link href="{{ route('cla.horasmar')}}" :active="request()->routeIs('cla.horasmar*')" class="block w-full">
-                {{ __('Horas de Mar') }}
-            </x-nav-link>
+
+            @if($seccao === 'cla' || (Auth::user()->is_admin ?? false))
+                <x-nav-link href="{{ route('allcalendar')}}" :active="request()->routeIs('allcalendar')" class="block w-full">
+                    {{ __('O meu Progresso') }}
+                </x-nav-link>
+                <x-nav-link href="{{ route('cla.noites-campo')}}" :active="request()->routeIs('cla.noites-campo*')" class="block w-full">
+                    {{ __('Noites de Campo') }}
+                </x-nav-link>
+                <x-nav-link href="{{ route('cla.horasmar')}}" :active="request()->routeIs('cla.horasmar*')" class="block w-full">
+                    {{ __('Horas de Mar') }}
+                </x-nav-link>
             @endif
         </div>
 

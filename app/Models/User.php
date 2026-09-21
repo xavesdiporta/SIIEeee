@@ -43,6 +43,7 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'cargo',
+        'cne_number',
         'seccao',
     ];
 
