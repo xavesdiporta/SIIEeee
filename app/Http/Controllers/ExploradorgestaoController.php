@@ -119,22 +119,30 @@ class ExploradorGestaoController extends Controller
             'changes.*.value' => ['required', 'boolean'],
         ]);
 
-        foreach ($validated['changes'] as $change) {
-            if ($change['value']) {
-                ProgressNote::updateOrCreate(
-                    ['user_id' => $change['user_id'], 'reference' => $change['reference']],
-                    [
-                        'status' => 'approved',
-                        'category' => $this->categoriaDoRef($change['reference']),
-                        'proposal' => '',
-                        'note' => '',
-                    ]
-                );
-            } else {
-                ProgressNote::where('user_id', $change['user_id'])
-                    ->where('reference', $change['reference'])
-                    ->delete();
+        try {
+            foreach ($validated['changes'] as $change) {
+                if ($change['value']) {
+                    ProgressNote::updateOrCreate(
+                        ['user_id' => $change['user_id'], 'reference' => $change['reference']],
+                        [
+                            'status' => 'approved',
+                            'category' => $this->categoriaDoRef($change['reference']),
+                            'proposal' => '',
+                            'note' => '',
+                        ]
+                    );
+                } else {
+                    ProgressNote::where('user_id', $change['user_id'])
+                        ->where('reference', $change['reference'])
+                        ->delete();
+                }
             }
+        } catch (\Throwable $e) {
+            // TEMPORÁRIO — remover depois de encontrarmos o erro
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
         return response()->json(['ok' => true, 'count' => count($validated['changes'])]);
