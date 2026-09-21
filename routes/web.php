@@ -71,7 +71,7 @@ Route::middleware([
 
     // 2ª Secção: Expedição (Exploradores)
     Route::prefix('expedicao')->name('expedicao.')->middleware(['seccao:exploradores'])->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'exploradores'])->name('dashboard');
+        Route::get('/dashboard', [ExploradorgestaoController::class, 'index'])->name('dashboard');
         Route::get('/exploradores/gestao', [ExploradorgestaoController::class, 'index'])->name('exploradores-gestao');
         Route::post('/exploradores/gestao/user', [ExploradorgestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
         Route::post('/exploradores/gestao/toggle', [ExploradorgestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
