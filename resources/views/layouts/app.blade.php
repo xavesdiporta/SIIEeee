@@ -100,20 +100,20 @@
     </style>
 </head>
 <body class="font-sans antialiased" style="background-color: {{ match(Auth::user()->seccao ?? 'cla') {
-         'lobitos'      => '#FBF8ED',
-         'exploradores' => '#EEF7F1',
-         'pioneiros'    => '#EEF0F7',
-         'cla'          => '#FAF7F5',
-         default        => '#FAF7F5',
+         'lobitos'      => '#9B8432',
+         'exploradores' => '#2D5A3D',
+         'pioneiros'    => '#3D5490',
+         'cla'          => '#5C4B3A',
+         default        => '#5C4B3A',
      } }};">
     <x-banner />
 
     <div class="min-h-screen" style="background-color: {{ match(Auth::user()->seccao ?? 'cla') {
-             'lobitos'      => '#FBF8ED',
-             'exploradores' => '#EEF7F1',
-             'pioneiros'    => '#EEF0F7',
-             'cla'          => '#FAF7F5',
-             default        => '#FAF7F5',
+             'lobitos'      => '#9B8432',
+             'exploradores' => '#2D5A3D',
+             'pioneiros'    => '#3D5490',
+             'cla'          => '#5C4B3A',
+             default        => '#5C4B3A',
          } }};">
         @include('components.navigation-menu')
 
