@@ -36,7 +36,7 @@ class ExploradorgestaoController extends Controller
             ->groupBy('user_id')
             ->map(fn ($notas) => $notas->pluck('reference')->all());
 
-        return view('pages.exploradores', [
+        return view('pages.dashboards.exploradores', [
             'categorias'   => $categorias,
             'totalRefsAll' => $totalRefsAll,
             'exploradores' => $exploradores,
