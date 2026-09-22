@@ -1,414 +1,207 @@
 <x-app-layout>
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pb-16">
-
-        @php
-            $categories = [
-                ['label' => 'F', 'name' => 'Físico', 'color' => '#16a34a', 'refs' => ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']],
-                ['label' => 'A', 'name' => 'Afectivo', 'color' => '#dc2626', 'refs' => ['A1', 'A2', 'A3', 'A4', 'A5', 'A6']],
-                ['label' => 'C', 'name' => 'Carácter', 'color' => '#2563eb', 'refs' => ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']],
-                ['label' => 'E', 'name' => 'Espiritual', 'color' => '#9333ea', 'refs' => ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8']],
-                ['label' => 'I', 'name' => 'Intelectual', 'color' => '#f97316', 'refs' => ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7']],
-                ['label' => 'S', 'name' => 'Social', 'color' => '#eab308', 'refs' => ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']],
-            ];
-
-            $completedRefs = \App\Models\ProgressNote::where('user_id', Auth::id())
-                ->where('status', 'approved')
-                ->pluck('reference')
-                ->toArray();
-
-            // Totais gerais das 6 dimensões
-            $totalRefsAll = collect($categories)->sum(fn ($cat) => count($cat['refs']));
-            $completedCountAll = count($completedRefs);
-
-            // Percentagens dos 3 pilares / etapas da Alcateia (Pata Tenra / 1ª Estrela / 2ª Estrela).
-            $comunidadePercent = $comunidadePercent ?? 0;
-            $partidaPercent    = $partidaPercent ?? 0;
-            $servicoPercent    = $servicoPercent ?? 0;
-            $overallPillarPercent = round(($comunidadePercent + $partidaPercent + $servicoPercent) / 3);
-
-            $gap = 4;
-            $segment = (360 - ($gap * 3)) / 3;
-            // Tons de amarelo/dourado oficiais dos Lobitos
-            $pilares = [
-                ['label' => 'Pata Tenra', 'percent' => $comunidadePercent, 'color' => '#854D0E'],
-                ['label' => '1ª Estrela', 'percent' => $partidaPercent,    'color' => '#CA8A04'],
-                ['label' => '2ª Estrela', 'percent' => $servicoPercent,    'color' => '#EAB308'],
-            ];
-            $stops = [];
-            $cursor = 0;
-            foreach ($pilares as $p) {
-                $filled = ($p['percent'] / 100) * $segment;
-                $stops[] = "{$p['color']} {$cursor}deg " . ($cursor + $filled) . 'deg';
-                $stops[] = '#FEF9C3 ' . ($cursor + $filled) . 'deg ' . ($cursor + $segment) . 'deg';
-                $cursor += $segment;
-                $stops[] = "transparent {$cursor}deg " . ($cursor + $gap) . 'deg';
-                $cursor += $gap;
-            }
-            $ringGradient = 'conic-gradient(from -90deg, ' . implode(', ', $stops) . ')';
-
-            // Eventos do mês do calendário
-            $monthEvents = $monthEvents ?? [];
-            $calendarUrl = $calendarUrl ?? null;
-
-            $mesesNomes = [
-                '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março', '04' => 'Abril',
-                '05' => 'Maio', '06' => 'Junho', '07' => 'Julho', '08' => 'Agosto',
-                '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
-            ];
-            $diasSemanaCurtos = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-            $diasSemanaLongos = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
-
-            $hoje = \Illuminate\Support\Carbon::today();
-            $mesReferencia = $mesReferencia ?? $hoje->copy();
-            $inicioMes = $mesReferencia->copy()->startOfMonth();
-            $fimMes = $mesReferencia->copy()->endOfMonth();
-
-            // Agrupa os eventos do mês por dia (Y-m-d).
-            $eventosPorDia = [];
-            foreach ($monthEvents as $evento) {
-                $chave = $evento['start']->format('Y-m-d');
-                $eventosPorDia[$chave][] = $evento;
-            }
-
-            // Grelha de semanas
-            $inicioGrelha = $inicioMes->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
-            $fimGrelha = $fimMes->copy()->endOfWeek(\Carbon\Carbon::MONDAY);
-
-            $semanas = [];
-            $diaAtual = $inicioGrelha->copy();
-            while ($diaAtual <= $fimGrelha) {
-                $semana = [];
-                for ($i = 0; $i < 7; $i++) {
-                    $semana[] = $diaAtual->copy();
-                    $diaAtual->addDay();
-                }
-                $semanas[] = $semana;
-            }
-
-            // Agenda por baixo do calendário
-            $agendaDoMes = [];
-            foreach ($eventosPorDia as $chave => $eventosDoDia) {
-                $dataObj = \Illuminate\Support\Carbon::parse($chave);
-                $agendaDoMes[] = [
-                    'label'  => $diasSemanaLongos[$dataObj->dayOfWeekIso - 1] . ', ' . $dataObj->format('j') . ' de ' . $mesesNomes[$dataObj->format('m')],
-                    'eventos' => $eventosDoDia,
-                ];
-            }
-
-            $urlBase = request()->url();
-            $mesAnteriorQS   = $mesReferencia->copy()->subMonth()->format('Y-m');
-            $mesSeguinteQS   = $mesReferencia->copy()->addMonth()->format('Y-m');
-            $anoAnteriorQS   = $mesReferencia->copy()->subYear()->format('Y-m');
-            $anoSeguinteQS   = $mesReferencia->copy()->addYear()->format('Y-m');
-            $estaNoMesAtual  = $mesReferencia->format('Y-m') === $hoje->format('Y-m');
-        @endphp
+    <div class="max-w-[100rem] mx-auto py-8 px-6 sm:px-8 lg:px-10">
 
         {{-- CABEÇALHO --}}
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FEF08A] text-[#854D0E] text-xs font-bold uppercase tracking-wider mb-2">
-                    <span class="w-2 h-2 rounded-full bg-[#EAB308]"></span>
-                    Alcateia · Lobitos
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FEF3C7] text-[#78350F] text-xs font-bold uppercase tracking-wider mb-2">
+                    <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+                    Gestão · Alcateia
                 </div>
-                <h1 class="text-2xl font-bold text-[#713F12]">O meu Sistema de Progresso</h1>
-                <p class="text-sm text-[#A16207] mt-1">Acompanha o teu trilho na Alcateia, pata a pata e dimensão a dimensão.</p>
+                <h1 class="text-xl font-bold text-[#78350F]">Progresso dos Lobitos</h1>
+                <p class="text-sm text-[#92400E] mt-1">{{ count($lobitos ?? []) }} lobitos registados</p>
             </div>
         </div>
 
-        {{-- LINHA DE TOPO: Círculo + Dados do utilizador --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#FEF08A] p-8 mb-6 flex flex-col md:flex-row items-center gap-8">
+        @if (session('status'))
+            <div class="mb-6 bg-[#FEF3C7] border border-[#FDE68A] text-[#78350F] text-sm rounded-xl px-4 py-3">
+                {{ session('status') }}
+            </div>
+        @endif
 
-            {{-- Círculo de Progresso --}}
-            <div class="flex flex-col items-center shrink-0">
-                <div class="relative w-64 h-64 rounded-full shadow-lg" style="background: {{ $ringGradient }};">
-                    <div class="absolute inset-8 bg-white rounded-full flex items-center justify-center">
-                        <div class="w-32 h-32 rounded-full bg-[#FEFCE8] border-4 border-[#FEF08A] flex flex-col items-center justify-center shadow-inner overflow-hidden">
-                            <img src="{{ asset('images/seccoes/lobitos.jpg') }}" alt="Lobitos" class="w-full h-full object-cover">
-                        </div>
-                    </div>
+        <div class="bg-white rounded-[24px] shadow-sm border border-[#FDE68A] p-6">
 
-                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-[#FEF08A] rounded-full px-4 py-1 shadow-sm">
-                        <span class="text-sm font-bold text-[#713F12]">{{ $overallPillarPercent }}%</span>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 mt-6 flex-wrap justify-center">
-                    @foreach($pilares as $p)
-                        <div class="flex items-center gap-1.5" title="{{ $p['label'] }}: {{ $p['percent'] }}%">
-                            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $p['color'] }};"></div>
-                            <span class="text-xs font-bold text-[#713F12] uppercase tracking-wide">{{ $p['label'] }}</span>
-                            <span class="text-xs text-[#A16207]">{{ $p['percent'] }}%</span>
-                        </div>
-                    @endforeach
-                </div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-[#78350F] uppercase tracking-widest">Tabela de Progresso</h3>
+                <button type="button" onclick="document.getElementById('form-novo-lobito').classList.toggle('hidden')"
+                        class="inline-flex items-center gap-1.5 bg-[#78350F] hover:bg-[#5C2A0A] text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Adicionar Lobito
+                </button>
             </div>
 
-            <div class="hidden md:block w-px self-stretch bg-[#FEF08A]"></div>
-
-            {{-- Dados do utilizador --}}
-            <div class="flex-1 w-full">
-                <h2 class="text-xl font-bold text-[#713F12] mb-4">Os meus dados</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                    <div class="bg-[#FEFCE8] p-4 rounded-2xl border border-[#FEF08A] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#A16207] uppercase font-bold tracking-wider">Lobito</p>
-                            <p class="text-base text-[#713F12] font-medium mt-0.5">{{ Auth::user()->name }}</p>
-                        </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#FEF08A]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#CA8A04]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="bg-[#FEFCE8] p-4 rounded-2xl border border-[#FEF08A] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#A16207] uppercase font-bold tracking-wider">Cargo / Bando</p>
-                            <p class="text-base text-[#713F12] font-medium mt-0.5">{{ Auth::user()->cargo ?? 'Lobito' }}</p>
-                        </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#FEF08A]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#CA8A04]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        </div>
-                    </div>
-
+            <form id="form-novo-lobito" method="POST" action="{{ route('alcateia.lobitos-gestao.store-user') }}"
+                  class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl p-4">
+                @csrf
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-[#92400E] uppercase tracking-wider mb-1.5">Nome do Lobito</label>
+                    <input type="text" name="nome" required
+                           class="w-full rounded-xl border-[#FDE68A] bg-white text-[#78350F] text-sm focus:border-[#D97706] focus:ring-[#D97706]">
                 </div>
-            </div>
+                <button type="submit" class="bg-[#D97706] hover:bg-[#B45309] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                    Adicionar
+                </button>
+            </form>
 
-        </div>
-
-        {{-- LINHA DO MEIO: Grid de 2 colunas --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {{-- COLUNA ESQUERDA (2/3): Tabela de progresso por dimensão --}}
-            <div class="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-[#FEF08A] p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-sm font-bold text-[#713F12] uppercase tracking-widest">Detalhe por Dimensão</h3>
-                    <span class="text-xs font-semibold text-[#A16207]">{{ $completedCountAll }} de {{ $totalRefsAll }} concluídos</span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                    @foreach($categories as $cat)
-                        @php
-                            $catTotal = count($cat['refs']);
-                            $catCompleted = collect($cat['refs'])->filter(fn ($r) => in_array($r, $completedRefs))->count();
-                            $catPercent = $catTotal > 0 ? round(($catCompleted / $catTotal) * 100) : 0;
-                        @endphp
-                        <div class="flex flex-col gap-2.5 p-3 rounded-2xl hover:bg-[#FEFCE8] transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold text-white shadow-sm shrink-0"
-                                         style="background-color: {{ $cat['color'] }};">
-                                        {{ $cat['label'] }}
-                                    </div>
-                                    <span class="text-sm font-semibold text-gray-700">{{ $cat['name'] }}</span>
-                                </div>
-                                <span class="text-xs font-semibold text-[#A16207]">{{ $catCompleted }}/{{ $catTotal }}</span>
-                            </div>
-
-                            <div class="pl-9">
-                                <div class="w-full h-1.5 bg-[#FEF9C3] rounded-full overflow-hidden mb-2.5">
-                                    <div class="h-full rounded-full transition-all duration-500"
-                                         style="width: {{ $catPercent }}%; background-color: {{ $cat['color'] }};"></div>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach($cat['refs'] as $ref)
-                                        @php $isCompleted = in_array($ref, $completedRefs); @endphp
-                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-300"
-                                             style="{{ $isCompleted ? 'background-color: ' . $cat['color'] . '; border-color: ' . $cat['color'] : 'border-color: #E5E7EB; background-color: white' }}"
-                                             title="{{ $ref }}{{ $isCompleted ? ' — aprovado' : ' — por realizar' }}">
-                                            @if($isCompleted)
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
-                                                </svg>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            {{-- COLUNA DIREITA (1/3): Como funciona / legenda --}}
-            <div class="bg-white rounded-[24px] shadow-sm border border-[#FEF08A] p-6 flex flex-col">
-                <h3 class="text-sm font-bold text-[#713F12] uppercase tracking-widest mb-4">Como funciona</h3>
-
-                <p class="text-sm text-[#713F12] leading-relaxed mb-5">
-                    Cada etapa — <strong>Pata Tenra</strong>, <strong>1ª Estrela</strong> e <strong>2ª Estrela</strong> —
-                    representa uma fase do teu Trilho na Alcateia. Dentro de cada uma, o teu crescimento é avaliado
-                    nas 6 dimensões pessoais à esquerda.
-                </p>
-
-                <div class="space-y-2.5 mb-5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style="background-color:#CA8A04;">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <span class="text-xs text-[#854D0E]">Objetivo aprovado</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-4 h-4 rounded-full border-2 border-[#E5E7EB] bg-white shrink-0"></div>
-                        <span class="text-xs text-[#854D0E]">Por realizar</span>
-                    </div>
-                </div>
-
-                <details class="mt-auto border-t border-[#FEF08A] pt-4 group">
-                    <summary class="cursor-pointer text-sm font-semibold text-[#713F12] flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
-                        Ver as 6 dimensões
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[#CA8A04] transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </summary>
-                    <ul class="mt-3 space-y-2">
-                        @foreach($categories as $cat)
-                            <li class="flex items-center gap-2 text-xs text-[#854D0E]">
-                                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {{ $cat['color'] }};"></span>
+            <div class="overflow-auto -mx-2 max-h-[640px] border border-[#FDE68A] rounded-xl">
+                <table class="border-collapse text-sm min-w-full">
+                    <thead>
+                    <tr>
+                        <th rowspan="2" class="sticky top-0 left-0 z-30 bg-[#FFFBEB] border-b border-r border-[#FDE68A] px-3 py-2 text-left text-xs font-bold text-[#92400E] uppercase whitespace-nowrap min-w-[160px]">Nome</th>
+                        <th rowspan="2" class="sticky top-0 z-20 bg-[#FFFBEB] border-b border-r-2 border-[#FDE68A] px-2 py-2 text-center text-xs font-bold text-[#92400E] uppercase whitespace-nowrap">Total</th>
+                        @foreach($categorias as $cat)
+                            <th colspan="{{ count($cat['refs']) }}"
+                                class="sticky top-0 z-10 border-b border-r-2 border-[#FDE68A] px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide"
+                                style="background-color: {{ $cat['color'] }}1a; color: {{ $cat['color'] }};">
                                 {{ $cat['name'] }}
-                            </li>
+                            </th>
                         @endforeach
-                    </ul>
-                </details>
-            </div>
-
-        </div>
-
-        {{-- LINHA DE BAIXO: Calendário dos Lobitos --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#FEF08A] p-6 mt-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <h3 class="text-sm font-bold text-[#713F12] uppercase tracking-widest">Calendário da Alcateia</h3>
-
-                <div class="flex items-center gap-3">
-                    {{-- Navegação de ano/mês --}}
-                    <div class="flex items-center gap-0.5 bg-[#FEFCE8] border border-[#FEF08A] rounded-full p-1">
-                        <a href="{{ $urlBase }}?mes={{ $anoAnteriorQS }}" title="Ano anterior"
-                           class="p-1.5 rounded-full text-[#854D0E] hover:bg-white hover:text-[#713F12] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 19l-7-7 7-7M11 19l-7-7 7-7" />
-                            </svg>
-                        </a>
-                        <a href="{{ $urlBase }}?mes={{ $mesAnteriorQS }}" title="Mês anterior"
-                           class="p-1.5 rounded-full text-[#854D0E] hover:bg-white hover:text-[#713F12] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </a>
-
-                        <span class="text-sm font-semibold text-[#713F12] px-2 w-36 text-center select-none">
-                            {{ $mesesNomes[$mesReferencia->format('m')] }} {{ $mesReferencia->format('Y') }}
-                        </span>
-
-                        <a href="{{ $urlBase }}?mes={{ $mesSeguinteQS }}" title="Mês seguinte"
-                           class="p-1.5 rounded-full text-[#854D0E] hover:bg-white hover:text-[#713F12] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                        <a href="{{ $urlBase }}?mes={{ $anoSeguinteQS }}" title="Ano seguinte"
-                           class="p-1.5 rounded-full text-[#854D0E] hover:bg-white hover:text-[#713F12] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 5l7 7-7 7M13 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                    </div>
-
-                    @unless($estaNoMesAtual)
-                        <a href="{{ $urlBase }}" class="text-xs font-semibold text-[#CA8A04] hover:underline shrink-0">Hoje</a>
-                    @endunless
-
-                    @if(!empty($calendarUrl))
-                        <a href="{{ $calendarUrl }}" target="_blank" rel="noopener"
-                           class="text-xs font-semibold text-[#CA8A04] hover:text-[#713F12] transition-colors shrink-0">
-                            Ver calendário completo →
-                        </a>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Cabeçalho dos dias da semana --}}
-            <div class="grid grid-cols-7 gap-1 mb-1">
-                @foreach($diasSemanaCurtos as $dia)
-                    <div class="text-center text-[10px] font-bold text-[#A16207] uppercase py-1">{{ $dia }}</div>
-                @endforeach
-            </div>
-
-            {{-- Grelha do mês --}}
-            <div class="grid grid-cols-7 gap-1">
-                @foreach($semanas as $semana)
-                    @foreach($semana as $dia)
+                    </tr>
+                    <tr>
+                        @foreach($categorias as $cat)
+                            @foreach($cat['refs'] as $ref)
+                                <th class="sticky z-10 bg-[#FFFDF5] border-b border-r border-[#FEF3C7] px-1 py-1.5 text-center text-[10px] font-semibold text-[#B45309] w-9" style="top: 33px;">
+                                    {{ $ref }}
+                                </th>
+                            @endforeach
+                        @endforeach
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($lobitos as $lobito)
                         @php
-                            $chaveDia = $dia->format('Y-m-d');
-                            $eventosDoDia = $eventosPorDia[$chaveDia] ?? [];
-                            $ehMesAtual = $dia->month === $mesReferencia->month;
-                            $ehHoje = $dia->isSameDay($hoje);
+                            $refsDoUser = $matriz[$lobito->id] ?? [];
+                            $totalUser = count($refsDoUser);
                         @endphp
-                        <div class="aspect-square flex flex-col items-center justify-center gap-0.5 rounded-xl
-                            {{ $ehMesAtual ? 'text-[#713F12]' : 'text-[#CA8A04]/30' }}
-                            {{ $ehHoje ? 'bg-[#FEFCE8] border-2 border-[#EAB308] font-bold' : '' }}">
-                            <span class="text-xs">{{ $dia->format('j') }}</span>
-                            @if(count($eventosDoDia) > 0)
-                                <span class="flex gap-0.5">
-                                    @foreach(array_slice($eventosDoDia, 0, 3) as $ev)
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[#EAB308]"></span>
-                                    @endforeach
-                                </span>
-                            @endif
-                        </div>
-                    @endforeach
-                @endforeach
+                        <tr class="hover:bg-[#FFFBEB] transition-colors">
+                            <td class="sticky left-0 z-10 bg-white border-b border-r border-[#FDE68A] px-3 py-2 text-[#78350F] font-medium whitespace-nowrap">
+                                {{ $lobito->name }}
+                            </td>
+                            <td class="border-b border-r-2 border-[#FDE68A] px-2 py-2 text-center font-semibold text-[#78350F] whitespace-nowrap valor-total">
+                                {{ $totalUser }}/{{ $totalRefsAll }}
+                            </td>
+                            @foreach($categorias as $cat)
+                                @foreach($cat['refs'] as $ref)
+                                    @php $marcado = in_array($ref, $refsDoUser, true); @endphp
+                                    <td class="border-b border-r border-[#FEF3C7] text-center cel-objetivo">
+                                        <input type="checkbox"
+                                               class="toggle-objetivo w-4 h-4 cursor-pointer"
+                                               style="accent-color: {{ $cat['color'] }};"
+                                               data-user="{{ $lobito->id }}"
+                                               data-ref="{{ $ref }}"
+                                               data-original="{{ $marcado ? '1' : '0' }}"
+                                            {{ $marcado ? 'checked' : '' }}>
+                                    </td>
+                                @endforeach
+                            @endforeach
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ 2 + $totalRefsAll }}" class="py-10 text-center text-sm text-[#92400E]">
+                                Ainda não há lobitos registados. Usa o botão "Adicionar Lobito" acima.
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
             </div>
-
-            {{-- Agenda do mês --}}
-            <div class="mt-6 border-t border-[#FEF08A] pt-5">
-                @if(empty($agendaDoMes))
-                    <div class="flex flex-col items-center justify-center text-center py-6">
-                        <div class="w-12 h-12 rounded-full bg-[#FEFCE8] border border-[#FEF08A] flex items-center justify-center mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#CA8A04]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <p class="text-sm font-medium text-[#713F12]">Sem eventos este mês</p>
-                        <p class="text-xs text-[#A16207] mt-1">As atividades da Alcateia vão aparecer aqui assim que forem marcadas no calendário.</p>
-                    </div>
-                @else
-                    <div class="space-y-4">
-                        @foreach($agendaDoMes as $dia)
-                            <div>
-                                <p class="text-xs font-bold text-[#A16207] uppercase tracking-wide mb-2">{{ $dia['label'] }}</p>
-                                <div class="space-y-2">
-                                    @foreach($dia['eventos'] as $evento)
-                                        <div class="flex items-center gap-3">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-[#EAB308] shrink-0"></span>
-                                            <p class="text-sm text-[#713F12] flex-1 min-w-0 truncate">{{ $evento['title'] }}</p>
-                                            <p class="text-xs text-[#A16207] shrink-0">
-                                                @if($evento['all_day'])
-                                                    Todo o dia
-                                                @else
-                                                    {{ $evento['start']->format('H:i') }}
-                                                @endif
-                                            </p>
-                                            @if(!empty($evento['link']))
-                                                <a href="{{ $evento['link'] }}" target="_blank" rel="noopener"
-                                                   class="shrink-0 text-[#CA8A04] hover:text-[#713F12] transition-colors" title="Ver no Google Calendar">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                    </svg>
-                                                </a>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+            <div class="flex items-center justify-between mt-4">
+                <p id="alteracoes-info" class="text-xs text-[#92400E]">Sem alterações por gravar.</p>
+                <button type="button" id="btn-guardar-alteracoes" disabled
+                        class="inline-flex items-center gap-2 bg-[#D97706] hover:bg-[#B45309] disabled:bg-[#FDE68A] disabled:cursor-not-allowed disabled:text-[#92400E] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Enviar para a base de dados
+                </button>
             </div>
         </div>
-
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const btnGuardar = document.getElementById('btn-guardar-alteracoes');
+            const infoAlteracoes = document.getElementById('alteracoes-info');
+            const pendentes = new Map();
+
+            function atualizarBarra() {
+                const n = pendentes.size;
+                btnGuardar.disabled = n === 0;
+                infoAlteracoes.textContent = n === 0
+                    ? 'Sem alterações por gravar.'
+                    : n + ' etapa(s) por gravar.';
+            }
+
+            document.querySelectorAll('.toggle-objetivo').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    const userId = checkbox.dataset.user;
+                    const ref = checkbox.dataset.ref;
+                    const original = checkbox.dataset.original === '1';
+                    const chave = userId + '-' + ref;
+                    const row = checkbox.closest('tr');
+                    const cel = checkbox.closest('.cel-objetivo');
+
+                    const valorTotal = row.querySelector('.valor-total');
+                    const partes = valorTotal.textContent.split('/');
+                    let atual = parseInt(partes[0], 10) + (checkbox.checked ? 1 : -1);
+                    valorTotal.textContent = atual + '/' + partes[1].trim();
+
+                    if (checkbox.checked === original) {
+                        pendentes.delete(chave);
+                        cel.classList.remove('bg-[#FEF9C3]');
+                    } else {
+                        pendentes.set(chave, {
+                            user_id: parseInt(userId, 10),
+                            reference: ref,
+                            value: checkbox.checked,
+                        });
+                        cel.classList.add('bg-[#FEF9C3]');
+                    }
+
+                    atualizarBarra();
+                });
+            });
+
+            btnGuardar.addEventListener('click', function () {
+                if (pendentes.size === 0) return;
+
+                const changes = Array.from(pendentes.values());
+                btnGuardar.disabled = true;
+                btnGuardar.textContent = 'A gravar...';
+
+                fetch('{{ route("alcateia.lobitos-gestao.toggle-bulk") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ changes: changes }),
+                })
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('Falhou');
+                        return res.json();
+                    })
+                    .then(function () {
+                        pendentes.forEach(function (mudanca) {
+                            const checkbox = document.querySelector(
+                                '.toggle-objetivo[data-user="' + mudanca.user_id + '"][data-ref="' + mudanca.reference + '"]'
+                            );
+                            checkbox.dataset.original = mudanca.value ? '1' : '0';
+                            checkbox.closest('.cel-objetivo').classList.remove('bg-[#FEF9C3]');
+                        });
+                        pendentes.clear();
+                        atualizarBarra();
+                        btnGuardar.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Enviar para a base de dados';
+                    })
+                    .catch(function () {
+                        alert('Não foi possível gravar as alterações. Tenta outra vez.');
+                        btnGuardar.disabled = false;
+                        btnGuardar.textContent = 'Enviar para a base de dados';
+                    });
+            });
+        });
+    </script>
 </x-app-layout>

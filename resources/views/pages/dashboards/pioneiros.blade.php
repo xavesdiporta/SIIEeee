@@ -1,414 +1,207 @@
 <x-app-layout>
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pb-16">
-
-        @php
-            $categories = [
-                ['label' => 'F', 'name' => 'Físico', 'color' => '#16a34a', 'refs' => ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']],
-                ['label' => 'A', 'name' => 'Afectivo', 'color' => '#dc2626', 'refs' => ['A1', 'A2', 'A3', 'A4', 'A5', 'A6']],
-                ['label' => 'C', 'name' => 'Carácter', 'color' => '#2563eb', 'refs' => ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']],
-                ['label' => 'E', 'name' => 'Espiritual', 'color' => '#9333ea', 'refs' => ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8']],
-                ['label' => 'I', 'name' => 'Intelectual', 'color' => '#f97316', 'refs' => ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7']],
-                ['label' => 'S', 'name' => 'Social', 'color' => '#eab308', 'refs' => ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']],
-            ];
-
-            $completedRefs = \App\Models\ProgressNote::where('user_id', Auth::id())
-                ->where('status', 'approved')
-                ->pluck('reference')
-                ->toArray();
-
-            // Totais gerais das 6 dimensões
-            $totalRefsAll = collect($categories)->sum(fn ($cat) => count($cat['refs']));
-            $completedCountAll = count($completedRefs);
-
-            // Percentagens das 3 etapas da Comunidade (Partida / Ação / Construção).
-            $comunidadePercent = $comunidadePercent ?? 0;
-            $partidaPercent    = $partidaPercent ?? 0;
-            $servicoPercent    = $servicoPercent ?? 0;
-            $overallPillarPercent = round(($comunidadePercent + $partidaPercent + $servicoPercent) / 3);
-
-            $gap = 4;
-            $segment = (360 - ($gap * 3)) / 3;
-            // Tons de azul oficiais dos Pioneiros
-            $pilares = [
-                ['label' => 'Partida',     'percent' => $comunidadePercent, 'color' => '#1E3A8A'],
-                ['label' => 'Ação',        'percent' => $partidaPercent,    'color' => '#2563EB'],
-                ['label' => 'Construção',  'percent' => $servicoPercent,    'color' => '#60A5FA'],
-            ];
-            $stops = [];
-            $cursor = 0;
-            foreach ($pilares as $p) {
-                $filled = ($p['percent'] / 100) * $segment;
-                $stops[] = "{$p['color']} {$cursor}deg " . ($cursor + $filled) . 'deg';
-                $stops[] = '#DBEAFE ' . ($cursor + $filled) . 'deg ' . ($cursor + $segment) . 'deg';
-                $cursor += $segment;
-                $stops[] = "transparent {$cursor}deg " . ($cursor + $gap) . 'deg';
-                $cursor += $gap;
-            }
-            $ringGradient = 'conic-gradient(from -90deg, ' . implode(', ', $stops) . ')';
-
-            // Eventos do mês do calendário
-            $monthEvents = $monthEvents ?? [];
-            $calendarUrl = $calendarUrl ?? null;
-
-            $mesesNomes = [
-                '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março', '04' => 'Abril',
-                '05' => 'Maio', '06' => 'Junho', '07' => 'Julho', '08' => 'Agosto',
-                '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
-            ];
-            $diasSemanaCurtos = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-            $diasSemanaLongos = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
-
-            $hoje = \Illuminate\Support\Carbon::today();
-            $mesReferencia = $mesReferencia ?? $hoje->copy();
-            $inicioMes = $mesReferencia->copy()->startOfMonth();
-            $fimMes = $mesReferencia->copy()->endOfMonth();
-
-            // Agrupa os eventos do mês por dia (Y-m-d).
-            $eventosPorDia = [];
-            foreach ($monthEvents as $evento) {
-                $chave = $evento['start']->format('Y-m-d');
-                $eventosPorDia[$chave][] = $evento;
-            }
-
-            // Grelha de semanas
-            $inicioGrelha = $inicioMes->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
-            $fimGrelha = $fimMes->copy()->endOfWeek(\Carbon\Carbon::MONDAY);
-
-            $semanas = [];
-            $diaAtual = $inicioGrelha->copy();
-            while ($diaAtual <= $fimGrelha) {
-                $semana = [];
-                for ($i = 0; $i < 7; $i++) {
-                    $semana[] = $diaAtual->copy();
-                    $diaAtual->addDay();
-                }
-                $semanas[] = $semana;
-            }
-
-            // Agenda por baixo do calendário
-            $agendaDoMes = [];
-            foreach ($eventosPorDia as $chave => $eventosDoDia) {
-                $dataObj = \Illuminate\Support\Carbon::parse($chave);
-                $agendaDoMes[] = [
-                    'label'  => $diasSemanaLongos[$dataObj->dayOfWeekIso - 1] . ', ' . $dataObj->format('j') . ' de ' . $mesesNomes[$dataObj->format('m')],
-                    'eventos' => $eventosDoDia,
-                ];
-            }
-
-            $urlBase = request()->url();
-            $mesAnteriorQS   = $mesReferencia->copy()->subMonth()->format('Y-m');
-            $mesSeguinteQS   = $mesReferencia->copy()->addMonth()->format('Y-m');
-            $anoAnteriorQS   = $mesReferencia->copy()->subYear()->format('Y-m');
-            $anoSeguinteQS   = $mesReferencia->copy()->addYear()->format('Y-m');
-            $estaNoMesAtual  = $mesReferencia->format('Y-m') === $hoje->format('Y-m');
-        @endphp
+    <div class="max-w-[100rem] mx-auto py-8 px-6 sm:px-8 lg:px-10">
 
         {{-- CABEÇALHO --}}
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DBEAFE] text-[#1E3A8A] text-xs font-bold uppercase tracking-wider mb-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DBEAFE] text-[#1E3A5F] text-xs font-bold uppercase tracking-wider mb-2">
                     <span class="w-2 h-2 rounded-full bg-[#2563EB]"></span>
-                    Comunidade · Pioneiros
+                    Gestão · Comunidade
                 </div>
-                <h1 class="text-2xl font-bold text-[#1E3A8A]">O meu Sistema de Progresso</h1>
-                <p class="text-sm text-[#1D4ED8] mt-1">Acompanha o teu rumo na Comunidade, etapa a etapa e dimensão a dimensão.</p>
+                <h1 class="text-xl font-bold text-[#1E3A5F]">Progresso dos Pioneiros</h1>
+                <p class="text-sm text-[#1D4ED8] mt-1">{{ count($pioneiros ?? []) }} pioneiros registados</p>
             </div>
         </div>
 
-        {{-- LINHA DE TOPO: Círculo + Dados do utilizador --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#BFDBFE] p-8 mb-6 flex flex-col md:flex-row items-center gap-8">
+        @if (session('status'))
+            <div class="mb-6 bg-[#DBEAFE] border border-[#BFDBFE] text-[#1E3A5F] text-sm rounded-xl px-4 py-3">
+                {{ session('status') }}
+            </div>
+        @endif
 
-            {{-- Círculo de Progresso --}}
-            <div class="flex flex-col items-center shrink-0">
-                <div class="relative w-64 h-64 rounded-full shadow-lg" style="background: {{ $ringGradient }};">
-                    <div class="absolute inset-8 bg-white rounded-full flex items-center justify-center">
-                        <div class="w-32 h-32 rounded-full bg-[#EFF6FF] border-4 border-[#BFDBFE] flex flex-col items-center justify-center shadow-inner overflow-hidden">
-                            <img src="{{ asset('images/pios.jpeg') }}" alt="Pioneiros" class="w-full h-full object-cover">
-                        </div>
-                    </div>
+        <div class="bg-white rounded-[24px] shadow-sm border border-[#BFDBFE] p-6">
 
-                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-[#BFDBFE] rounded-full px-4 py-1 shadow-sm">
-                        <span class="text-sm font-bold text-[#1E3A8A]">{{ $overallPillarPercent }}%</span>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 mt-6 flex-wrap justify-center">
-                    @foreach($pilares as $p)
-                        <div class="flex items-center gap-1.5" title="{{ $p['label'] }}: {{ $p['percent'] }}%">
-                            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $p['color'] }};"></div>
-                            <span class="text-xs font-bold text-[#1E3A8A] uppercase tracking-wide">{{ $p['label'] }}</span>
-                            <span class="text-xs text-[#2563EB]">{{ $p['percent'] }}%</span>
-                        </div>
-                    @endforeach
-                </div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-[#1E3A5F] uppercase tracking-widest">Tabela de Progresso</h3>
+                <button type="button" onclick="document.getElementById('form-novo-pioneiro').classList.toggle('hidden')"
+                        class="inline-flex items-center gap-1.5 bg-[#1E3A5F] hover:bg-[#16324D] text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Adicionar Pioneiro
+                </button>
             </div>
 
-            <div class="hidden md:block w-px self-stretch bg-[#BFDBFE]"></div>
-
-            {{-- Dados do utilizador --}}
-            <div class="flex-1 w-full">
-                <h2 class="text-xl font-bold text-[#1E3A8A] mb-4">Os meus dados</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                    <div class="bg-[#EFF6FF] p-4 rounded-2xl border border-[#BFDBFE] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#2563EB] uppercase font-bold tracking-wider">Pioneiro</p>
-                            <p class="text-base text-[#1E3A8A] font-medium mt-0.5">{{ Auth::user()->name }}</p>
-                        </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#BFDBFE]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="bg-[#EFF6FF] p-4 rounded-2xl border border-[#BFDBFE] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#2563EB] uppercase font-bold tracking-wider">Cargo / Equipa</p>
-                            <p class="text-base text-[#1E3A8A] font-medium mt-0.5">{{ Auth::user()->cargo ?? 'Pioneiro' }}</p>
-                        </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#BFDBFE]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        </div>
-                    </div>
-
+            <form id="form-novo-pioneiro" method="POST" action="{{ route('comunidade.pioneiros-gestao.store-user') }}"
+                  class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl p-4">
+                @csrf
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-[#1D4ED8] uppercase tracking-wider mb-1.5">Nome do Pioneiro</label>
+                    <input type="text" name="nome" required
+                           class="w-full rounded-xl border-[#BFDBFE] bg-white text-[#1E3A5F] text-sm focus:border-[#2563EB] focus:ring-[#2563EB]">
                 </div>
-            </div>
+                <button type="submit" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                    Adicionar
+                </button>
+            </form>
 
-        </div>
-
-        {{-- LINHA DO MEIO: Grid de 2 colunas --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {{-- COLUNA ESQUERDA (2/3): Tabela de progresso por dimensão --}}
-            <div class="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-[#BFDBFE] p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-sm font-bold text-[#1E3A8A] uppercase tracking-widest">Detalhe por Dimensão</h3>
-                    <span class="text-xs font-semibold text-[#2563EB]">{{ $completedCountAll }} de {{ $totalRefsAll }} concluídos</span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                    @foreach($categories as $cat)
-                        @php
-                            $catTotal = count($cat['refs']);
-                            $catCompleted = collect($cat['refs'])->filter(fn ($r) => in_array($r, $completedRefs))->count();
-                            $catPercent = $catTotal > 0 ? round(($catCompleted / $catTotal) * 100) : 0;
-                        @endphp
-                        <div class="flex flex-col gap-2.5 p-3 rounded-2xl hover:bg-[#EFF6FF] transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold text-white shadow-sm shrink-0"
-                                         style="background-color: {{ $cat['color'] }};">
-                                        {{ $cat['label'] }}
-                                    </div>
-                                    <span class="text-sm font-semibold text-gray-700">{{ $cat['name'] }}</span>
-                                </div>
-                                <span class="text-xs font-semibold text-[#2563EB]">{{ $catCompleted }}/{{ $catTotal }}</span>
-                            </div>
-
-                            <div class="pl-9">
-                                <div class="w-full h-1.5 bg-[#DBEAFE] rounded-full overflow-hidden mb-2.5">
-                                    <div class="h-full rounded-full transition-all duration-500"
-                                         style="width: {{ $catPercent }}%; background-color: {{ $cat['color'] }};"></div>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach($cat['refs'] as $ref)
-                                        @php $isCompleted = in_array($ref, $completedRefs); @endphp
-                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-300"
-                                             style="{{ $isCompleted ? 'background-color: ' . $cat['color'] . '; border-color: ' . $cat['color'] : 'border-color: #E5E7EB; background-color: white' }}"
-                                             title="{{ $ref }}{{ $isCompleted ? ' — aprovado' : ' — por realizar' }}">
-                                            @if($isCompleted)
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
-                                                </svg>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            {{-- COLUNA DIREITA (1/3): Como funciona / legenda --}}
-            <div class="bg-white rounded-[24px] shadow-sm border border-[#BFDBFE] p-6 flex flex-col">
-                <h3 class="text-sm font-bold text-[#1E3A8A] uppercase tracking-widest mb-4">Como funciona</h3>
-
-                <p class="text-sm text-[#1E3A8A] leading-relaxed mb-5">
-                    Cada etapa — <strong>Partida</strong>, <strong>Ação</strong> e <strong>Construção</strong> —
-                    representa uma fase do teu Rumo na Comunidade. Dentro de cada uma, o teu crescimento é avaliado
-                    nas 6 dimensões pessoais à esquerda.
-                </p>
-
-                <div class="space-y-2.5 mb-5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style="background-color:#2563EB;">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <span class="text-xs text-[#1E3A8A]">Objetivo aprovado</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-4 h-4 rounded-full border-2 border-[#E5E7EB] bg-white shrink-0"></div>
-                        <span class="text-xs text-[#1E3A8A]">Por realizar</span>
-                    </div>
-                </div>
-
-                <details class="mt-auto border-t border-[#BFDBFE] pt-4 group">
-                    <summary class="cursor-pointer text-sm font-semibold text-[#1E3A8A] flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
-                        Ver as 6 dimensões
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[#2563EB] transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </summary>
-                    <ul class="mt-3 space-y-2">
-                        @foreach($categories as $cat)
-                            <li class="flex items-center gap-2 text-xs text-[#1D4ED8]">
-                                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {{ $cat['color'] }};"></span>
+            <div class="overflow-auto -mx-2 max-h-[640px] border border-[#BFDBFE] rounded-xl">
+                <table class="border-collapse text-sm min-w-full">
+                    <thead>
+                    <tr>
+                        <th rowspan="2" class="sticky top-0 left-0 z-30 bg-[#EFF6FF] border-b border-r border-[#BFDBFE] px-3 py-2 text-left text-xs font-bold text-[#1D4ED8] uppercase whitespace-nowrap min-w-[160px]">Nome</th>
+                        <th rowspan="2" class="sticky top-0 z-20 bg-[#EFF6FF] border-b border-r-2 border-[#BFDBFE] px-2 py-2 text-center text-xs font-bold text-[#1D4ED8] uppercase whitespace-nowrap">Total</th>
+                        @foreach($categorias as $cat)
+                            <th colspan="{{ count($cat['refs']) }}"
+                                class="sticky top-0 z-10 border-b border-r-2 border-[#BFDBFE] px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide"
+                                style="background-color: {{ $cat['color'] }}1a; color: {{ $cat['color'] }};">
                                 {{ $cat['name'] }}
-                            </li>
+                            </th>
                         @endforeach
-                    </ul>
-                </details>
-            </div>
-
-        </div>
-
-        {{-- LINHA DE BAIXO: Calendário dos Pioneiros --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#BFDBFE] p-6 mt-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <h3 class="text-sm font-bold text-[#1E3A8A] uppercase tracking-widest">Calendário da Comunidade</h3>
-
-                <div class="flex items-center gap-3">
-                    {{-- Navegação de ano/mês --}}
-                    <div class="flex items-center gap-0.5 bg-[#EFF6FF] border border-[#BFDBFE] rounded-full p-1">
-                        <a href="{{ $urlBase }}?mes={{ $anoAnteriorQS }}" title="Ano anterior"
-                           class="p-1.5 rounded-full text-[#1D4ED8] hover:bg-white hover:text-[#1E3A8A] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 19l-7-7 7-7M11 19l-7-7 7-7" />
-                            </svg>
-                        </a>
-                        <a href="{{ $urlBase }}?mes={{ $mesAnteriorQS }}" title="Mês anterior"
-                           class="p-1.5 rounded-full text-[#1D4ED8] hover:bg-white hover:text-[#1E3A8A] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </a>
-
-                        <span class="text-sm font-semibold text-[#1E3A8A] px-2 w-36 text-center select-none">
-                            {{ $mesesNomes[$mesReferencia->format('m')] }} {{ $mesReferencia->format('Y') }}
-                        </span>
-
-                        <a href="{{ $urlBase }}?mes={{ $mesSeguinteQS }}" title="Mês seguinte"
-                           class="p-1.5 rounded-full text-[#1D4ED8] hover:bg-white hover:text-[#1E3A8A] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                        <a href="{{ $urlBase }}?mes={{ $anoSeguinteQS }}" title="Ano seguinte"
-                           class="p-1.5 rounded-full text-[#1D4ED8] hover:bg-white hover:text-[#1E3A8A] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 5l7 7-7 7M13 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                    </div>
-
-                    @unless($estaNoMesAtual)
-                        <a href="{{ $urlBase }}" class="text-xs font-semibold text-[#2563EB] hover:underline shrink-0">Hoje</a>
-                    @endunless
-
-                    @if(!empty($calendarUrl))
-                        <a href="{{ $calendarUrl }}" target="_blank" rel="noopener"
-                           class="text-xs font-semibold text-[#2563EB] hover:text-[#1E3A8A] transition-colors shrink-0">
-                            Ver calendário completo →
-                        </a>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Cabeçalho dos dias da semana --}}
-            <div class="grid grid-cols-7 gap-1 mb-1">
-                @foreach($diasSemanaCurtos as $dia)
-                    <div class="text-center text-[10px] font-bold text-[#3B82F6] uppercase py-1">{{ $dia }}</div>
-                @endforeach
-            </div>
-
-            {{-- Grelha do mês --}}
-            <div class="grid grid-cols-7 gap-1">
-                @foreach($semanas as $semana)
-                    @foreach($semana as $dia)
+                    </tr>
+                    <tr>
+                        @foreach($categorias as $cat)
+                            @foreach($cat['refs'] as $ref)
+                                <th class="sticky z-10 bg-[#F8FAFF] border-b border-r border-[#DBEAFE] px-1 py-1.5 text-center text-[10px] font-semibold text-[#1D4ED8] w-9" style="top: 33px;">
+                                    {{ $ref }}
+                                </th>
+                            @endforeach
+                        @endforeach
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($pioneiros as $pioneiro)
                         @php
-                            $chaveDia = $dia->format('Y-m-d');
-                            $eventosDoDia = $eventosPorDia[$chaveDia] ?? [];
-                            $ehMesAtual = $dia->month === $mesReferencia->month;
-                            $ehHoje = $dia->isSameDay($hoje);
+                            $refsDoUser = $matriz[$pioneiro->id] ?? [];
+                            $totalUser = count($refsDoUser);
                         @endphp
-                        <div class="aspect-square flex flex-col items-center justify-center gap-0.5 rounded-xl
-                            {{ $ehMesAtual ? 'text-[#1E3A8A]' : 'text-[#3B82F6]/30' }}
-                            {{ $ehHoje ? 'bg-[#EFF6FF] border-2 border-[#2563EB] font-bold' : '' }}">
-                            <span class="text-xs">{{ $dia->format('j') }}</span>
-                            @if(count($eventosDoDia) > 0)
-                                <span class="flex gap-0.5">
-                                    @foreach(array_slice($eventosDoDia, 0, 3) as $ev)
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[#2563EB]"></span>
-                                    @endforeach
-                                </span>
-                            @endif
-                        </div>
-                    @endforeach
-                @endforeach
+                        <tr class="hover:bg-[#EFF6FF] transition-colors">
+                            <td class="sticky left-0 z-10 bg-white border-b border-r border-[#BFDBFE] px-3 py-2 text-[#1E3A5F] font-medium whitespace-nowrap">
+                                {{ $pioneiro->name }}
+                            </td>
+                            <td class="border-b border-r-2 border-[#BFDBFE] px-2 py-2 text-center font-semibold text-[#1E3A5F] whitespace-nowrap valor-total">
+                                {{ $totalUser }}/{{ $totalRefsAll }}
+                            </td>
+                            @foreach($categorias as $cat)
+                                @foreach($cat['refs'] as $ref)
+                                    @php $marcado = in_array($ref, $refsDoUser, true); @endphp
+                                    <td class="border-b border-r border-[#DBEAFE] text-center cel-objetivo">
+                                        <input type="checkbox"
+                                               class="toggle-objetivo w-4 h-4 cursor-pointer"
+                                               style="accent-color: {{ $cat['color'] }};"
+                                               data-user="{{ $pioneiro->id }}"
+                                               data-ref="{{ $ref }}"
+                                               data-original="{{ $marcado ? '1' : '0' }}"
+                                            {{ $marcado ? 'checked' : '' }}>
+                                    </td>
+                                @endforeach
+                            @endforeach
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ 2 + $totalRefsAll }}" class="py-10 text-center text-sm text-[#1D4ED8]">
+                                Ainda não há pioneiros registados. Usa o botão "Adicionar Pioneiro" acima.
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
             </div>
-
-            {{-- Agenda do mês --}}
-            <div class="mt-6 border-t border-[#BFDBFE] pt-5">
-                @if(empty($agendaDoMes))
-                    <div class="flex flex-col items-center justify-center text-center py-6">
-                        <div class="w-12 h-12 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-center mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <p class="text-sm font-medium text-[#1E3A8A]">Sem eventos este mês</p>
-                        <p class="text-xs text-[#2563EB] mt-1">As atividades da Comunidade vão aparecer aqui assim que forem marcadas no calendário.</p>
-                    </div>
-                @else
-                    <div class="space-y-4">
-                        @foreach($agendaDoMes as $dia)
-                            <div>
-                                <p class="text-xs font-bold text-[#2563EB] uppercase tracking-wide mb-2">{{ $dia['label'] }}</p>
-                                <div class="space-y-2">
-                                    @foreach($dia['eventos'] as $evento)
-                                        <div class="flex items-center gap-3">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-[#2563EB] shrink-0"></span>
-                                            <p class="text-sm text-[#1E3A8A] flex-1 min-w-0 truncate">{{ $evento['title'] }}</p>
-                                            <p class="text-xs text-[#2563EB] shrink-0">
-                                                @if($evento['all_day'])
-                                                    Todo o dia
-                                                @else
-                                                    {{ $evento['start']->format('H:i') }}
-                                                @endif
-                                            </p>
-                                            @if(!empty($evento['link']))
-                                                <a href="{{ $evento['link'] }}" target="_blank" rel="noopener"
-                                                   class="shrink-0 text-[#2563EB] hover:text-[#1E3A8A] transition-colors" title="Ver no Google Calendar">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                    </svg>
-                                                </a>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+            <div class="flex items-center justify-between mt-4">
+                <p id="alteracoes-info" class="text-xs text-[#1D4ED8]">Sem alterações por gravar.</p>
+                <button type="button" id="btn-guardar-alteracoes" disabled
+                        class="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] disabled:bg-[#BFDBFE] disabled:cursor-not-allowed disabled:text-[#1D4ED8] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Enviar para a base de dados
+                </button>
             </div>
         </div>
-
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const btnGuardar = document.getElementById('btn-guardar-alteracoes');
+            const infoAlteracoes = document.getElementById('alteracoes-info');
+            const pendentes = new Map();
+
+            function atualizarBarra() {
+                const n = pendentes.size;
+                btnGuardar.disabled = n === 0;
+                infoAlteracoes.textContent = n === 0
+                    ? 'Sem alterações por gravar.'
+                    : n + ' etapa(s) por gravar.';
+            }
+
+            document.querySelectorAll('.toggle-objetivo').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    const userId = checkbox.dataset.user;
+                    const ref = checkbox.dataset.ref;
+                    const original = checkbox.dataset.original === '1';
+                    const chave = userId + '-' + ref;
+                    const row = checkbox.closest('tr');
+                    const cel = checkbox.closest('.cel-objetivo');
+
+                    const valorTotal = row.querySelector('.valor-total');
+                    const partes = valorTotal.textContent.split('/');
+                    let atual = parseInt(partes[0], 10) + (checkbox.checked ? 1 : -1);
+                    valorTotal.textContent = atual + '/' + partes[1].trim();
+
+                    if (checkbox.checked === original) {
+                        pendentes.delete(chave);
+                        cel.classList.remove('bg-[#FEF9C3]');
+                    } else {
+                        pendentes.set(chave, {
+                            user_id: parseInt(userId, 10),
+                            reference: ref,
+                            value: checkbox.checked,
+                        });
+                        cel.classList.add('bg-[#FEF9C3]');
+                    }
+
+                    atualizarBarra();
+                });
+            });
+
+            btnGuardar.addEventListener('click', function () {
+                if (pendentes.size === 0) return;
+
+                const changes = Array.from(pendentes.values());
+                btnGuardar.disabled = true;
+                btnGuardar.textContent = 'A gravar...';
+
+                fetch('{{ route("comunidade.pioneiros-gestao.toggle-bulk") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ changes: changes }),
+                })
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('Falhou');
+                        return res.json();
+                    })
+                    .then(function () {
+                        pendentes.forEach(function (mudanca) {
+                            const checkbox = document.querySelector(
+                                '.toggle-objetivo[data-user="' + mudanca.user_id + '"][data-ref="' + mudanca.reference + '"]'
+                            );
+                            checkbox.dataset.original = mudanca.value ? '1' : '0';
+                            checkbox.closest('.cel-objetivo').classList.remove('bg-[#FEF9C3]');
+                        });
+                        pendentes.clear();
+                        atualizarBarra();
+                        btnGuardar.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Enviar para a base de dados';
+                    })
+                    .catch(function () {
+                        alert('Não foi possível gravar as alterações. Tenta outra vez.');
+                        btnGuardar.disabled = false;
+                        btnGuardar.textContent = 'Enviar para a base de dados';
+                    });
+            });
+        });
+    </script>
 </x-app-layout>

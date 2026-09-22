@@ -6,12 +6,14 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExploradorgestaoController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LobitosGestaoController;
 use App\Http\Controllers\OgImageController;
 use App\Http\Controllers\Payments\LemonSqueezyController;
 use App\Http\Controllers\Payments\PaddleController;
 use App\Http\Controllers\Payments\StripeController;
 use App\Http\Controllers\AtaController;
 use App\Http\Controllers\ExcelSheetController;
+use App\Http\Controllers\PioneirosGestaoController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\Subscribed;
 use Illuminate\Support\Facades\Route;
@@ -54,19 +56,13 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/allcalendar', [DashboardController::class, 'allcalendar'])->name('allcalendar');
-    // =========================================================================
-    // Secções do Agrupamento
-    // =========================================================================
 
     // 1ª Secção: Alcateia (Lobitos)
     Route::prefix('alcateia')->name('alcateia.')->middleware(['seccao:lobitos'])->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'lobitos'])->name('dashboard');
-        // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoAlcateia'])->name('noites-campo');
-        // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoAlcateia'])->name('noites-campo.store');
-        // Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampoAlcateia'])->name('noites-campo.toggle');
-        // Route::get('/horasmar', [ExcelSheetController::class, 'horasMarAlcateia'])->name('horasmar');
-        // Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMarAlcateia'])->name('horasmar.store');
-        // Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMarAlcateia'])->name('horasmar.toggle');
+        Route::get('/dashboard', [LobitosGestaoController::class, 'index'])->name('dashboard');
+        Route::post('/exploradores/gestao/user', [LobitosGestaoController::class, 'storeUser'])->name('lobitos-gestao.store-user');
+        Route::post('/exploradores/gestao/toggle', [LobitosGestaoController::class, 'toggleObjetivo'])->name('lobitos-gestao.toggle');
+        Route::post('/exploradores/gestao/toggle-bulk', [LobitosGestaoController::class, 'toggleObjetivoBulk'])->name('lobitos-gestao.toggle-bulk'); 
     });
 
     // 2ª Secção: Expedição (Exploradores)
@@ -74,28 +70,24 @@ Route::middleware([
         Route::get('/dashboard', [ExploradorgestaoController::class, 'index'])->name('dashboard');
         Route::post('/exploradores/gestao/user', [ExploradorgestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
         Route::post('/exploradores/gestao/toggle', [ExploradorgestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
-        Route::post('/exploradores/gestao/toggle-bulk', [ExploradorGestaoController::class, 'toggleObjetivoBulk'])->name('exploradores-gestao.toggle-bulk');    });
+        Route::post('/exploradores/gestao/toggle-bulk', [ExploradorGestaoController::class, 'toggleObjetivoBulk'])->name('exploradores-gestao.toggle-bulk');
+    });
 
     // 3ª Secção: Comunidade (Pioneiros)
     Route::prefix('comunidade')->name('comunidade.')->middleware(['seccao:pioneiros'])->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'pioneiros'])->name('dashboard');
-        // Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampoComunidade'])->name('noites-campo');
-        // Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampoComunidade'])->name('noites-campo.store');
-        // Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampoComunidade'])->name('noites-campo.toggle');
-        // Route::get('/horasmar', [ExcelSheetController::class, 'horasMarComunidade'])->name('horasmar');
-        // Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMarComunidade'])->name('horasmar.store');
-        // Route::post('/horasmar/toggle', [ExcelSheetController::class, 'toggleParticipacaoHorasMarComunidade'])->name('horasmar.toggle');
+        Route::get('/dashboard', [PioneirosGestaoController::class, 'index'])->name('dashboard');
+        Route::post('/pioneiros/gestao/user', [PioneirosgestaoController::class, 'storeUser'])->name('pioneiros-gestao.store-user');
+        Route::post('/pioneiros/gestao/toggle', [PioneirosGestaoController::class, 'toggleObjetivo'])->name('pioneiros-gestao.toggle');
+        Route::post('/pioneiros/gestao/toggle-bulk', [PioneirosGestaoController::class, 'toggleObjetivoBulk'])->name('pioneiros-gestao.toggle-bulk');
     });
 
     // 4ª Secção: Clã (Caminheiros)
     Route::prefix('cla')->name('cla.')->middleware(['seccao:cla'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'cla'])->name('dashboard');
-
         // Noites de Campo
         Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampo'])->name('noites-campo');
         Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampo'])->name('noites-campo.store');
         Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampo'])->name('noites-campo.toggle');
-
         // Horas de Mar
         Route::get('/horasmar', [ExcelSheetController::class, 'horasMar'])->name('horasmar');
         Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMar'])->name('horasmar.store');
