@@ -62,7 +62,7 @@ Route::middleware([
         Route::get('/dashboard', [LobitosGestaoController::class, 'index'])->name('dashboard');
         Route::post('/exploradores/gestao/user', [LobitosGestaoController::class, 'storeUser'])->name('lobitos-gestao.store-user');
         Route::post('/exploradores/gestao/toggle', [LobitosGestaoController::class, 'toggleObjetivo'])->name('lobitos-gestao.toggle');
-        Route::post('/exploradores/gestao/toggle-bulk', [LobitosGestaoController::class, 'toggleObjetivoBulk'])->name('lobitos-gestao.toggle-bulk'); 
+        Route::post('/exploradores/gestao/toggle-bulk', [LobitosGestaoController::class, 'toggleObjetivoBulk'])->name('lobitos-gestao.toggle-bulk');
     });
 
     // 2ª Secção: Expedição (Exploradores)

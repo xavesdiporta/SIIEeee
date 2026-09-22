@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Responses;
 
 use Illuminate\Http\JsonResponse;
@@ -21,6 +20,6 @@ class LoginResponse implements LoginResponseContract
 
         return $request->wantsJson()
             ? new JsonResponse(['two_factor' => false], 200)
-            : redirect()->intended($url);
+            : redirect($url);
     }
 }
