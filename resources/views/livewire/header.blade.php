@@ -1,3 +1,14 @@
+@php
+    $seccao = Auth::check() ? (Auth::user()->seccao ?? 'cla') : 'cla';
+
+    $logo = match ($seccao) {
+        'lobitos'      => 'images/logo-lobitos.png',
+        'exploradores' => 'images/logo-exploradores.png',
+        'pioneiros'    => 'images/logo-pioneiros.png',
+        default        => 'images/logo-banana.png',
+    };
+@endphp
+
 <div>
     <div class="max-w-7xl m-auto navbar fixed top-4 left-0 right-0 z-50 backdrop-blur-xl shadow-lg border border-[oklch(90%_0.076_70.697_/0.4)] rounded-3xl transition-all duration-300" style="background-color: oklch(98% 0.016 73.684 / 0.65); color: oklch(40% 0.123 38.172);margin-inline: auto;">
 
@@ -16,7 +27,7 @@
             </div>
 
             <a href="/" class="flex flex-row items-center justify-center font-bold text-md">
-                <img class="w-16" src="{{ asset('/images/logo-banana.jpg') }}" alt="">
+                <img class="w-16" src="{{ asset($logo) }}" alt="">
                 <span class="ml-2 flex flex-col items-start">
                     <span class="leading-4" style="color: oklch(22.45% 0.075 37.85);">
                         {{ __('Agrupamento 542 Entroncamento') }}

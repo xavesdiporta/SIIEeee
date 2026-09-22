@@ -10,7 +10,7 @@
             <a href="https://www.facebook.com/agrupamento542" target="_blank"
                class="flex flex-col items-center gap-2 group">
                 <div class="w-28 h-28 rounded-full bg-base-200 flex items-center justify-center transition-all group-hover:bg-blue-100 group-hover:scale-105">
-                    <img src="/images/logo-banana.jpg" alt="Agrupamento 542" class="w-20 h-20 object-contain rounded-full" />
+                    <img src="/images/logo-banana.png" alt="Agrupamento 542" class="w-20 h-20 object-contain rounded-full" />
                 </div>
                 <div class="flex items-center gap-1">
                     <span class="text-base font-medium">{{ __('Agrupamento 542') }}</span>
@@ -24,7 +24,7 @@
             <a href="https://www.instagram.com/agrupamento542" target="_blank"
                class="flex flex-col items-center gap-2 group">
                 <div class="w-28 h-28 rounded-full bg-base-200 flex items-center justify-center transition-all group-hover:bg-pink-100 group-hover:scale-105">
-                    <img src="/images/logo-banana.jpg" alt="Agrupamento 542" class="w-20 h-20 object-contain rounded-full" />
+                    <img src="/images/logo-banana.png" alt="Agrupamento 542" class="w-20 h-20 object-contain rounded-full" />
                 </div>
                 <div class="flex items-center gap-1">
                     <span class="text-base font-medium">{{ __('Agrupamento 542') }}</span>

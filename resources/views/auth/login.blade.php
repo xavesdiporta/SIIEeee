@@ -3,7 +3,7 @@
 
         {{-- Logo e título --}}
         <div class="flex flex-col items-center mb-10">
-            <img src="/images/logo-banana.jpg" alt="Agrupamento 542"
+            <img src="/images/logo-banana.png" alt="Agrupamento 542"
                  class="w-20 h-20 rounded-full object-cover shadow-md mb-4" />
             <h2 class="text-3xl font-bold" style="color: oklch(22.45% 0.075 37.85);">{{ __('Bem-vindo') }}</h2>
             <p class="mt-1 text-sm" style="color: oklch(55% 0.08 38.172);">{{ __('Inicia sessão para acederes ao sistema.') }}</p>
