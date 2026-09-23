@@ -67,7 +67,7 @@ class GoogleSheetsReader
         $activities = [];
         $adjustmentRowIndex = null;
 
-        // 1. Mapeia as atividades e localiza a linha de Ajustes/Secções Anteriores
+        // 1. Mapeia as atividades e preenche os participantes de cada uma
         foreach ($rows as $rowIndex => $row) {
             $nomeLinha = strtolower(trim($row[1] ?? ''));
 
@@ -82,6 +82,15 @@ class GoogleSheetsReader
                 }
 
                 if (!empty($row[1])) {
+                    // Prepara as colunas dos participantes para esta atividade
+                    $participantesCols = [];
+                    foreach ($this->personCols as $colIndex) {
+                        $val = strtolower(trim($row[$colIndex] ?? ''));
+                        if (in_array($val, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro'])) {
+                            $participantesCols[] = $colIndex;
+                        }
+                    }
+
                     $activities[] = [
                         'row' => $rowIndex + 1,
                         'data' => $row[0] ?? '',
@@ -89,19 +98,19 @@ class GoogleSheetsReader
                         'local' => $row[2] ?? '',
                         'noites' => (float) str_replace(',', '.', $row[4] ?? 0),
                         'acantonamento' => in_array(strtolower(trim($row[5] ?? '')), ['true', 'sim', '1', 'verdadeiro']),
+                        'participantes_cols' => $participantesCols, // <--- Adicionado aqui a cada atividade
                     ];
                 }
             }
         }
 
-        // Se não encontrou a linha de ajuste pelo nome, usa por omissão a linha 4 (index 3)
         if ($adjustmentRowIndex === null && isset($rows[3])) {
             $adjustmentRowIndex = 3;
         }
 
         $people = [];
 
-        // 2. Calcula os totais somando as atividades + Ajuste (Secções Anteriores)
+        // 2. Calcula os totais de cada pessoa
         foreach ($this->personCols as $colIndex) {
             $personName = $rows[2][$colIndex] ?? '';
             if (empty($personName)) {
@@ -115,16 +124,9 @@ class GoogleSheetsReader
 
             $totalNoitesAtividades = 0;
             $totalAtividadesCount = 0;
-            $participantesCols = [];
 
             foreach ($activities as $act) {
-                $rowIdx = $act['row'] - 1;
-                $val = strtolower(trim($rows[$rowIdx][$colIndex] ?? ''));
-
-                $participou = in_array($val, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro']);
-
-                if ($participou) {
-                    $participantesCols[] = $colIndex;
+                if (in_array($colIndex, $act['participantes_cols'], true)) {
                     $totalAtividadesCount++;
 
                     if (!$act['acantonamento']) {
@@ -137,9 +139,8 @@ class GoogleSheetsReader
                 'col' => $colIndex,
                 'name' => $personName,
                 'past_nights' => $ajuste,
-                'total_nights' => $totalNoitesAtividades + $ajuste, // <--- Aqui inclui os 101 das secções passadas!
+                'total_nights' => $totalNoitesAtividades + $ajuste,
                 'total_activities' => $totalAtividadesCount,
-                'participantes_cols' => $participantesCols,
             ];
         }
 
