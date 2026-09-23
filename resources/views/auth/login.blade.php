@@ -39,22 +39,41 @@
                        onblur="this.style.border='1.5px solid oklch(88% 0.05 70.697)'; this.style.boxShadow='none'" />
             </div>
 
-            {{-- Password --}}
-            <div>
+            {{-- Password com Botão para Mostrar / Ocultar --}}
+            <div x-data="{ showPassword: false }">
                 <label for="password" class="block text-sm font-medium mb-1.5"
                        style="color: oklch(40% 0.123 38.172);">
                     {{ __('Password') }}
                 </label>
-                <input id="password"
-                       type="password"
-                       name="password"
-                       required autocomplete="current-password"
-                       class="w-full rounded-lg px-4 py-3 text-base outline-none transition-all"
-                       style="background-color: oklch(96% 0.02 75.164);
-                              color: oklch(30% 0.08 38.172);
-                              border: 1.5px solid oklch(88% 0.05 70.697);"
-                       onfocus="this.style.border='1.5px solid oklch(46.44% 0.111 37.85)'; this.style.boxShadow='0 0 0 3px oklch(46.44% 0.111 37.85 / 0.15)'"
-                       onblur="this.style.border='1.5px solid oklch(88% 0.05 70.697)'; this.style.boxShadow='none'" />
+                <div class="relative">
+                    <input id="password"
+                           :type="showPassword ? 'text' : 'password'"
+                           name="password"
+                           required autocomplete="current-password"
+                           class="w-full rounded-lg px-4 py-3 pr-11 text-base outline-none transition-all"
+                           style="background-color: oklch(96% 0.02 75.164);
+                                  color: oklch(30% 0.08 38.172);
+                                  border: 1.5px solid oklch(88% 0.05 70.697);"
+                           onfocus="this.style.border='1.5px solid oklch(46.44% 0.111 37.85)'; this.style.boxShadow='0 0 0 3px oklch(46.44% 0.111 37.85 / 0.15)'"
+                           onblur="this.style.border='1.5px solid oklch(88% 0.05 70.697)'; this.style.boxShadow='none'" />
+
+                    <button type="button"
+                            @click="showPassword = !showPassword"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors hover:opacity-80"
+                            style="color: oklch(50% 0.07 38.172);"
+                            aria-label="{{ __('Mostrar ou ocultar password') }}">
+                        {{-- Ícone Olho Aberto --}}
+                        <svg x-show="!showPassword" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        {{-- Ícone Olho Fechado --}}
+                        <svg x-show="showPassword" x-cloak xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a9.954 9.954 0 013.122-.563c4.478 0 8.268 2.943 9.542 7a9.97 9.97 0 01-2.28 3.59m-4.116 4.116A3 3 0 0112 15a3 3 0 01-2.121-.879m3.121-3.121A3 3 0 0012 9" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             {{-- Remember + Forgot --}}
