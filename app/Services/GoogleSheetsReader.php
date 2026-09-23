@@ -23,7 +23,6 @@ class GoogleSheetsReader
 
         $client = new Client();
         $client->setAuthConfig($fullPath);
-        // Escopo de leitura E escrita — precisamos de escrever de volta na folha.
         $client->addScope(Sheets::SPREADSHEETS);
 
         $this->sheets = new Sheets($client);
@@ -51,13 +50,12 @@ class GoogleSheetsReader
     }
 
     /**
-     * Leitor dedicado à folha "Noites de Campo". Devolve as pessoas na ordem
-     * ORIGINAL das colunas (para a grelha bater certo com o Sheets) — a
-     * ordenação por ranking é feita depois, na camada do controller/view.
+     * Leitor dedicado à folha "Noites de Campo".
      */
     public function readNoitesCampo(string $spreadsheetId): array
     {
-        $response = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:ZZ100');
+        // 1. Aumentado o intervalo para A1:ZZ1000 para apanhar todas as atividades
+        $response = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:ZZ1000');
         $rows = $response->getValues() ?? [];
 
         if (empty($rows)) {
@@ -67,38 +65,52 @@ class GoogleSheetsReader
         $activities = [];
         $adjustmentRowIndex = null;
 
-        // 1. Mapeia as atividades e preenche os participantes de cada uma
+        // 2. Mapeia todas as atividades
         foreach ($rows as $rowIndex => $row) {
             $nomeLinha = strtolower(trim($row[1] ?? ''));
 
             if ($rowIndex >= 3) {
-                if (str_contains($nomeLinha, 'ajuste') || str_contains($nomeLinha, 'secções') || str_contains($nomeLinha, 'seccoes')) {
+                // Deteta a linha de Ajustes / Secções Anteriores
+                if (str_contains($nomeLinha, 'ajuste') || str_contains($nomeLinha, 'secções') || str_contains($nomeLinha, 'seccoes') || str_contains($nomeLinha, 'transito')) {
                     $adjustmentRowIndex = $rowIndex;
                     continue;
                 }
 
+                // Se for linha de subtotal, ignora (continue) sem interromper a leitura das restantes atividades
                 if (str_contains($nomeLinha, 'total')) {
-                    break;
+                    continue;
                 }
 
                 if (!empty($row[1])) {
-                    // Prepara as colunas dos participantes para esta atividade
+                    // Prepara as colunas dos participantes marcados
                     $participantesCols = [];
                     foreach ($this->personCols as $colIndex) {
-                        $val = strtolower(trim($row[$colIndex] ?? ''));
-                        if (in_array($val, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro'])) {
+                        $val = $row[$colIndex] ?? null;
+
+                        $marcado = match (true) {
+                            is_bool($val) => $val,
+                            is_numeric($val) => (float)$val > 0,
+                            is_string($val) => in_array(strtolower(trim($val)), ['true', '1', 'x', 'sim', 'vade', 'verdadeiro', 'v']),
+                            default => false,
+                        };
+
+                        if ($marcado) {
                             $participantesCols[] = $colIndex;
                         }
                     }
+
+                    // Correção: Noites é a Coluna D ($row[3]) e Acantonamento é a Coluna E ($row[4])
+                    $noitesVal = (float) str_replace(',', '.', $row[3] ?? 0);
+                    $acantVal = in_array(strtolower(trim((string)($row[4] ?? ''))), ['true', 'sim', '1', 'verdadeiro', 'v', 'x']);
 
                     $activities[] = [
                         'row' => $rowIndex + 1,
                         'data' => $row[0] ?? '',
                         'nome' => $row[1] ?? '',
                         'local' => $row[2] ?? '',
-                        'noites' => (float) str_replace(',', '.', $row[4] ?? 0),
-                        'acantonamento' => in_array(strtolower(trim($row[5] ?? '')), ['true', 'sim', '1', 'verdadeiro']),
-                        'participantes_cols' => $participantesCols, // <--- Adicionado aqui a cada atividade
+                        'noites' => $noitesVal,
+                        'acantonamento' => $acantVal,
+                        'participantes_cols' => $participantesCols,
                     ];
                 }
             }
@@ -110,7 +122,7 @@ class GoogleSheetsReader
 
         $people = [];
 
-        // 2. Calcula os totais de cada pessoa
+        // 3. Calcula os totais de cada pessoa
         foreach ($this->personCols as $colIndex) {
             $personName = $rows[2][$colIndex] ?? '';
             if (empty($personName)) {
@@ -172,10 +184,10 @@ class GoogleSheetsReader
             'valueRenderOption' => 'UNFORMATTED_VALUE',
         ])->getValues() ?? [];
 
-        $colNome = 3; // coluna D
+        $colNome = 3;
 
-        $headerRow = $formatted[1] ?? []; // linha 2: nomes das atividades
-        $horasRow = $formatted[2] ?? [];  // linha 3: horas de cada atividade
+        $headerRow = $formatted[1] ?? [];
+        $horasRow = $formatted[2] ?? [];
 
         $activities = [];
         for ($col = 4; $col < count($headerRow); $col++) {
@@ -194,7 +206,7 @@ class GoogleSheetsReader
         foreach (array_slice($formatted, 3) as $i => $row) {
             $nome = trim($row[$colNome] ?? '');
             if ($nome === '') {
-                continue; // fim da lista de pessoas
+                continue;
             }
 
             $rowNumber = $i + 4;
@@ -285,9 +297,10 @@ class GoogleSheetsReader
 
         $newRow = $afterRow + 1;
 
+        // Inserção ajustada para as colunas A a D (Data, Nome, Local, Noites)
         $this->sheets->spreadsheets_values->update(
             $spreadsheetId,
-            "B{$newRow}:E{$newRow}",
+            "A{$newRow}:D{$newRow}",
             new ValueRange(['values' => [[$dia, $nome, $local, $noites]]]),
             ['valueInputOption' => 'USER_ENTERED']
         );
