@@ -202,7 +202,8 @@
                                     {{ strtoupper($ini) }}
                                 </th>
                             @endforeach
-                            <th class="sticky top-0 right-0 z-20 bg-[#FAF7F5] border-b border-l border-[#E4D5C3] px-2 py-2 text-center text-xs font-bold text-[#776246] uppercase whitespace-nowrap">Ação</th>
+                            {{-- Coluna de Ação para eliminar em Desktop --}}
+                            <th class="sticky top-0 right-0 z-20 bg-[#FAF7F5] border-b border-l border-[#E4D5C3] px-3 py-2 text-center text-xs font-bold text-[#776246] uppercase whitespace-nowrap">Ação</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -228,13 +229,14 @@
                                             {{ $participou ? 'checked' : '' }}>
                                     </td>
                                 @endforeach
+                                {{-- Botão de apagar alinhado à direita na tabela --}}
                                 <td class="sticky right-0 z-10 bg-white border-b border-l border-[#E4D5C3] px-2 py-2 text-center whitespace-nowrap">
                                     <form method="POST" action="{{ route('cla.noites-campo.destroy') }}" onsubmit="return confirm('Tem a certeza que deseja eliminar esta atividade?');">
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="row" value="{{ $act['row'] }}">
-                                        <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors p-1" title="Eliminar atividade">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <button type="submit" class="text-gray-400 hover:text-[#B5432A] transition-colors p-1" title="Eliminar atividade">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                         </button>
@@ -249,7 +251,6 @@
                         </tbody>
                     </table>
                 </div>
-
             </div>
         </div>
 
