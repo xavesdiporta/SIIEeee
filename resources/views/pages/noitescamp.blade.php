@@ -114,7 +114,7 @@
                     </button>
                 </form>
 
-                <!-- VISÃO EM CARTÕES PARA MOBILE (Exibida apenas abaixo de md) -->
+                <!-- VISÃO EM CARTÕES PARA MOBILE -->
                 <div class="block md:hidden space-y-3">
                     @forelse($activities as $act)
                         <div x-data="{ open: false }" class="border border-[#E4D5C3] bg-[#FAF7F5] rounded-2xl p-3.5">
@@ -149,6 +149,22 @@
                             </div>
 
                             <div x-show="open" x-cloak class="mt-3 pt-3 border-t border-[#E4D5C3] space-y-2">
+                                <!-- BARRA SUPERIOR DO GERIR COM BOTÃO ELIMINAR -->
+                                <div class="flex items-center justify-between pb-2 border-b border-[#E4D5C3]">
+                                    <span class="text-[10px] font-bold text-[#776246] uppercase tracking-wider">Marcar Participantes</span>
+                                    <form method="POST" action="{{ route('cla.noites-campo.destroy') }}" onsubmit="return confirm('Tem a certeza que deseja eliminar esta atividade?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <input type="hidden" name="row" value="{{ $act['row'] }}">
+                                        <button type="submit" class="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg border border-red-200 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+
                                 @foreach($people as $person)
                                     @php $participou = in_array($person['col'], $act['participantes_cols'], true); @endphp
                                     <label class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E4D5C3] active:bg-gray-50 cursor-pointer">
@@ -168,7 +184,7 @@
                     @endforelse
                 </div>
 
-                <!-- VISÃO EM TABELA MATRIZ PARA DESKTOP (Exibida a partir de md) -->
+                <!-- VISÃO EM TABELA MATRIZ PARA DESKTOP -->
                 <div class="hidden md:block overflow-auto -mx-2 max-h-[640px] border border-[#E4D5C3] rounded-xl">
                     <table class="border-collapse text-sm min-w-full">
                         <thead>
@@ -186,6 +202,7 @@
                                     {{ strtoupper($ini) }}
                                 </th>
                             @endforeach
+                            <th class="sticky top-0 right-0 z-20 bg-[#FAF7F5] border-b border-l border-[#E4D5C3] px-2 py-2 text-center text-xs font-bold text-[#776246] uppercase whitespace-nowrap">Ação</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -211,10 +228,22 @@
                                             {{ $participou ? 'checked' : '' }}>
                                     </td>
                                 @endforeach
+                                <td class="sticky right-0 z-10 bg-white border-b border-l border-[#E4D5C3] px-2 py-2 text-center whitespace-nowrap">
+                                    <form method="POST" action="{{ route('cla.noites-campo.destroy') }}" onsubmit="return confirm('Tem a certeza que deseja eliminar esta atividade?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <input type="hidden" name="row" value="{{ $act['row'] }}">
+                                        <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors p-1" title="Eliminar atividade">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 5 + count($people) }}" class="py-10 text-center text-sm text-[#776246]">Sem atividades registadas.</td>
+                                <td colspan="{{ 6 + count($people) }}" class="py-10 text-center text-sm text-[#776246]">Sem atividades registadas.</td>
                             </tr>
                         @endforelse
                         </tbody>

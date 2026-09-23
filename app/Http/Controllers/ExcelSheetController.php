@@ -31,6 +31,24 @@ class ExcelSheetController extends Controller
         return view('pages.noitescamp', $data);
     }
 
+    public function destroyAtividadeNoitesCampo(Request $request, GoogleSheetsReader $reader)
+    {
+        $validated = $request->validate([
+            'row' => ['required', 'integer', 'min:4'],
+        ]);
+
+        $spreadsheetId = config('services.google_drive.files.noites_campo');
+        if (! $spreadsheetId) {
+            abort(500, 'ID da folha Google Sheets não configurado.');
+        }
+
+        $reader->deleteRow($spreadsheetId, $validated['row']);
+
+        Cache::forget('sheet.noites_campo');
+
+        return back()->with('status', 'Atividade eliminada com sucesso.');
+    }
+
     public function storeAtividadeNoitesCampo(Request $request, GoogleSheetsReader $reader)
     {
         $validated = $request->validate([

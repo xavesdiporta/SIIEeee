@@ -382,4 +382,22 @@ class GoogleSheetsReader
         }
         return $letter;
     }
+
+    public function deleteRow(string $spreadsheetId, int $row): void
+    {
+        $sheetId = $this->firstSheetId($spreadsheetId);
+
+        $this->sheets->spreadsheets->batchUpdate($spreadsheetId, new \Google\Service\Sheets\BatchUpdateSpreadsheetRequest([
+            'requests' => [[
+                'deleteDimension' => [
+                    'range' => [
+                        'sheetId' => $sheetId,
+                        'dimension' => 'ROWS',
+                        'startIndex' => $row - 1, // 0-indexed no Google Sheets
+                        'endIndex' => $row,
+                    ],
+                ],
+            ]],
+        ]));
+    }
 }
