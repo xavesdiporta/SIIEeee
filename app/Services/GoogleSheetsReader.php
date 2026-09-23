@@ -65,7 +65,6 @@ class GoogleSheetsReader
         $adjustmentRowIndex = null;
         $noitesCampoRowIndex = null;
 
-        // Helper para validar marcações das checkboxes das pessoas
         $isPersonChecked = function ($val): bool {
             if (is_bool($val)) return $val;
             if (is_numeric($val)) return (float)$val > 0;
@@ -79,12 +78,11 @@ class GoogleSheetsReader
         // 1. Analisar as linhas da folha
         foreach ($rows as $rowIndex => $row) {
             if ($rowIndex < 3) {
-                continue; // Pula cabeçalhos
+                continue;
             }
 
             $fullRowText = strtolower(implode(' ', $row));
 
-            // Deteta a linha de Ajustes
             if (
                 str_contains($fullRowText, 'ajuste') ||
                 str_contains($fullRowText, 'anteriores') ||
@@ -95,18 +93,15 @@ class GoogleSheetsReader
                 continue;
             }
 
-            // Deteta a linha "Noites de campo:" (totais finais)
             if (str_contains($fullRowText, 'noites de campo')) {
                 $noitesCampoRowIndex = $rowIndex;
                 continue;
             }
 
-            // Ignora linhas de subtotal
             if (str_contains($fullRowText, 'total c/') || str_contains($fullRowText, 'total lobitos') || str_contains($fullRowText, 'total exploradores')) {
                 continue;
             }
 
-            // Detetar posição exata das colunas para esta linha (evita desfasamento de colunas)
             $col0 = trim((string)($row[0] ?? ''));
             $col1 = trim((string)($row[1] ?? ''));
             $col2 = trim((string)($row[2] ?? ''));
@@ -115,21 +110,18 @@ class GoogleSheetsReader
             $col1IsDate = preg_match('/\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}/', $col1);
 
             if ($col0IsDate) {
-                // Data na Coluna A (idx 0)
                 $dataVal = $col0;
                 $nomeVal = $col1;
                 $localVal = $col2;
                 $noitesRaw = $row[3] ?? '0';
                 $acantRaw = $row[4] ?? null;
             } elseif ($col1IsDate) {
-                // Data na Coluna B (idx 1)
                 $dataVal = $col1;
                 $nomeVal = $col2;
                 $localVal = $row[3] ?? '';
                 $noitesRaw = $row[4] ?? '0';
                 $acantRaw = $row[5] ?? null;
             } else {
-                // Fallback inteligente
                 if (!empty($col1)) {
                     $dataVal = $col0;
                     $nomeVal = $col1;
@@ -143,23 +135,19 @@ class GoogleSheetsReader
                     $noitesRaw = $row[4] ?? '0';
                     $acantRaw = $row[5] ?? null;
                 } else {
-                    continue; // Linha vazia ou não identificada
+                    continue;
                 }
             }
 
-            // Se não tem nome de atividade válido, ignora
             if (empty($nomeVal)) {
                 continue;
             }
 
-            // Converte noites para float
             $noitesVal = (float) str_replace(',', '.', $noitesRaw);
 
-            // Acantonamento SÓ é true se tiver explicitamente sim/true/x/1/v
             $acantStr = strtolower(trim((string)$acantRaw));
             $acantVal = in_array($acantStr, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro', 'v', '●'], true);
 
-            // Identifica participantes marcados para esta atividade
             $participantesCols = [];
             foreach ($this->personCols as $colIndex) {
                 if (isset($row[$colIndex]) && $isPersonChecked($row[$colIndex])) {
@@ -200,7 +188,6 @@ class GoogleSheetsReader
                 }
             }
 
-            // Obter o valor do Ajuste das secções anteriores
             $ajuste = 0;
             if ($adjustmentRowIndex !== null && isset($rows[$adjustmentRowIndex][$colIndex])) {
                 $rawVal = str_replace(',', '.', trim((string) $rows[$adjustmentRowIndex][$colIndex]));
@@ -211,7 +198,6 @@ class GoogleSheetsReader
 
             $totalNights = $totalNoitesCheckboxes + $ajuste;
 
-            // Salvaguarda: Se a linha Ajustes não deu valor, mas existe o total na linha "Noites de campo:"
             if ($ajuste === 0.0 && $noitesCampoRowIndex !== null && isset($rows[$noitesCampoRowIndex][$colIndex])) {
                 $rawTotal = str_replace(',', '.', trim((string) $rows[$noitesCampoRowIndex][$colIndex]));
                 if (is_numeric($rawTotal) && (float)$rawTotal > 0) {
@@ -230,7 +216,8 @@ class GoogleSheetsReader
         }
 
         return [
-            'activities' => $activities,
+            // Inverte a ordem das atividades para exibir as mais recentes em cima
+            'activities' => array_reverse($activities),
             'people' => $people,
         ];
     }
