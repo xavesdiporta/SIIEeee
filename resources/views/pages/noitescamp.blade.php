@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="max-w-[100rem] mx-auto py-8 px-6 sm:px-8 lg:px-10">
+    <div class="max-w-[100rem] mx-auto py-4 sm:py-8 px-3 sm:px-8 lg:px-10" x-data="{ mobileTab: 'matriz' }">
 
         @php
             $totalNoites = collect($activities)->sum(fn ($a) => $a['acantonamento'] ? 0 : $a['noites']);
@@ -7,10 +7,24 @@
         @endphp
 
         {{-- CABEÇALHO --}}
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div>
                 <h2 class="text-xl font-bold text-[#3E2D1B]">Noites de Campo</h2>
-                <p class="text-sm text-[#776246] mt-1">{{ count($activities) }} atividades registadas · {{ $totalNoites }} noites no total</p>
+                <p class="text-xs sm:text-sm text-[#776246] mt-0.5">{{ count($activities) }} atividades registadas · {{ $totalNoites }} noites no total</p>
+            </div>
+
+            <!-- TABS DE NAVEGAÇÃO APENAS EM MOBILE -->
+            <div class="flex md:hidden bg-[#FAF7F5] border border-[#E4D5C3] p-1 rounded-xl">
+                <button type="button" @click="mobileTab = 'matriz'"
+                        :class="mobileTab === 'matriz' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors text-center">
+                    ⛺ Atividades
+                </button>
+                <button type="button" @click="mobileTab = 'ranking'"
+                        :class="mobileTab === 'ranking' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors text-center">
+                    🏆 Ranking
+                </button>
             </div>
         </div>
 
@@ -23,10 +37,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
             {{-- CLASSIFICAÇÃO POR PESSOA --}}
-            <div class="lg:col-span-1 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Por Pessoa</h3>
+            <div class="lg:col-span-1 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6"
+                 :class="{ 'hidden md:block': mobileTab !== 'ranking', 'block': mobileTab === 'ranking' }">
+                <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest mb-4 sm:mb-6">Por Pessoa</h3>
 
-                <div class="flex flex-col gap-5" id="painel-por-pessoa">
+                <div class="flex flex-col gap-4 sm:gap-5" id="painel-por-pessoa">
                     @forelse($people_ranked as $i => $person)
                         @php
                             $initials = collect(explode(' ', trim($person['name'])))->filter()->map(fn($w) => mb_substr($w, 0, 1))->take(2)->implode('');
@@ -39,14 +54,14 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-baseline gap-1.5">
-                                    <span class="text-lg font-bold text-[#B5432A] leading-none valor-noites">{{ $person['total_nights'] }}</span>
-                                    <span class="text-[11px] text-[#B0977A] uppercase tracking-wide">noites</span>
+                                    <span class="text-base sm:text-lg font-bold text-[#B5432A] leading-none valor-noites">{{ $person['total_nights'] }}</span>
+                                    <span class="text-[10px] sm:text-[11px] text-[#B0977A] uppercase tracking-wide">noites</span>
                                 </div>
-                                <span class="text-sm font-medium text-[#3E2D1B] truncate block mt-0.5">{{ $person['name'] }}</span>
-                                <div class="h-1.5 bg-[#F2ECE7] rounded-full mt-2 overflow-hidden">
+                                <span class="text-xs sm:text-sm font-medium text-[#3E2D1B] truncate block mt-0.5">{{ $person['name'] }}</span>
+                                <div class="h-1.5 bg-[#F2ECE7] rounded-full mt-1.5 overflow-hidden">
                                     <div class="h-full bg-[#B5432A] rounded-full barra-noites" style="width: {{ $barWidth }}%"></div>
                                 </div>
-                                <p class="text-[11px] text-[#B0977A] mt-1"><span class="valor-atividades">{{ $person['total_activities'] }}</span> atividades</p>
+                                <p class="text-[10px] sm:text-[11px] text-[#B0977A] mt-1"><span class="valor-atividades">{{ $person['total_activities'] }}</span> atividades</p>
                             </div>
                         </div>
                     @empty
@@ -55,12 +70,14 @@
                 </div>
             </div>
 
-            {{-- GRELHA ESTILO GOOGLE SHEETS --}}
-            <div class="lg:col-span-3 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
+            {{-- ZONA PRINCIPAL DE REGISTOS --}}
+            <div class="lg:col-span-3 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6"
+                 :class="{ 'hidden md:block': mobileTab !== 'matriz', 'block': mobileTab === 'matriz' }">
+
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Histórico de Atividades</h3>
+                    <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest">Histórico de Atividades</h3>
                     <button type="button" onclick="document.getElementById('form-nova-atividade').classList.toggle('hidden')"
-                            class="inline-flex items-center gap-1.5 bg-[#3E2D1B] hover:bg-[#2A1F13] text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
+                            class="inline-flex items-center gap-1.5 bg-[#3E2D1B] hover:bg-[#2A1F13] text-white text-xs font-semibold px-3 py-2 rounded-xl transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -68,14 +85,14 @@
                     </button>
                 </div>
 
-                {{-- Formulário de nova atividade (escondido por omissão) --}}
+                {{-- Formulário de nova atividade --}}
                 <form id="form-nova-atividade" method="POST" action="{{ route('cla.noites-campo.store') }}"
                       class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#FAF7F5] border border-[#E4D5C3] rounded-2xl p-4">
                     @csrf
                     <div>
                         <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Data</label>
                         <input type="text" name="dia" placeholder="2026/09/16" required
-                               class="rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
+                               class="w-full sm:w-auto rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
                     </div>
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Nome da atividade</label>
@@ -90,14 +107,69 @@
                     <div>
                         <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Noites</label>
                         <input type="number" name="noites" min="0" value="1" required
-                               class="w-20 rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
+                               class="w-full sm:w-20 rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#B5432A] focus:ring-[#B5432A]">
                     </div>
                     <button type="submit" class="bg-[#B5432A] hover:bg-[#96371F] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
                         Adicionar
                     </button>
                 </form>
 
-                <div class="overflow-auto -mx-2 max-h-[640px] border border-[#E4D5C3] rounded-xl">
+                <!-- VISÃO EM CARTÕES PARA MOBILE (Exibida apenas abaixo de md) -->
+                <div class="block md:hidden space-y-3">
+                    @forelse($activities as $act)
+                        <div x-data="{ open: false }" class="border border-[#E4D5C3] bg-[#FAF7F5] rounded-2xl p-3.5">
+                            <div @click="open = !open" class="flex items-center justify-between cursor-pointer">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold text-[#776246] uppercase bg-white px-2 py-0.5 rounded-md border border-[#E4D5C3]">
+                                            {{ $act['data'] }}
+                                        </span>
+                                        @if($act['acantonamento'])
+                                            <span class="text-[10px] font-bold text-[#B5432A] bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
+                                                Acantonamento
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <h4 class="text-sm font-bold text-[#3E2D1B] mt-1.5">{{ $act['nome'] }}</h4>
+                                    <p class="text-xs text-[#776246] mt-0.5">{{ $act['local'] ?: 'Sem local' }} ·
+                                        <strong class="{{ $act['acantonamento'] ? 'line-through text-[#B0977A]' : 'text-[#B5432A]' }}">
+                                            {{ $act['noites'] }} noites
+                                        </strong>
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <span class="text-[10px] uppercase font-bold text-[#776246]" x-text="open ? 'Fechar' : 'Gerir'"></span>
+                                    <div class="w-6 h-6 rounded-full bg-white border border-[#E4D5C3] flex items-center justify-center text-[#776246] transition-transform duration-200"
+                                         :class="{ 'rotate-180': open }">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div x-show="open" x-cloak class="mt-3 pt-3 border-t border-[#E4D5C3] space-y-2">
+                                @foreach($people as $person)
+                                    @php $participou = in_array($person['col'], $act['participantes_cols'], true); @endphp
+                                    <label class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E4D5C3] active:bg-gray-50 cursor-pointer">
+                                        <span class="text-xs font-medium text-[#3E2D1B]">{{ $person['name'] }}</span>
+                                        <input type="checkbox"
+                                               class="toggle-participacao w-5 h-5 accent-[#B5432A] rounded cursor-pointer"
+                                               data-row="{{ $act['row'] }}"
+                                               data-col="{{ $person['col'] }}"
+                                               data-noites="{{ $act['acantonamento'] ? 0 : $act['noites'] }}"
+                                            {{ $participou ? 'checked' : '' }}>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-[#776246] text-center py-6">Sem atividades registadas.</p>
+                    @endforelse
+                </div>
+
+                <!-- VISÃO EM TABELA MATRIZ PARA DESKTOP (Exibida a partir de md) -->
+                <div class="hidden md:block overflow-auto -mx-2 max-h-[640px] border border-[#E4D5C3] rounded-xl">
                     <table class="border-collapse text-sm min-w-full">
                         <thead>
                         <tr>
@@ -148,6 +220,7 @@
                         </tbody>
                     </table>
                 </div>
+
             </div>
         </div>
 
@@ -183,7 +256,7 @@
                             atualizarPainelPessoa(personCol, noites, original);
                         })
                         .catch(function () {
-                            checkbox.checked = !original; // reverte em caso de erro
+                            checkbox.checked = !original;
                             checkbox.disabled = false;
                             alert('Não foi possível guardar. Tenta outra vez.');
                         });
@@ -207,16 +280,12 @@
                 valorNoites.textContent = novoTotalNoites;
                 valorAtividades.textContent = novoTotalAtividades;
 
-                // se este total ultrapassar o máximo atual, ajusta a escala de todas as barras
                 if (novoTotalNoites > maxNoites) {
                     maxNoites = novoTotalNoites;
                 }
 
                 const novaLargura = maxNoites > 0 ? Math.round((novoTotalNoites / maxNoites) * 100) : 0;
                 barra.style.width = novaLargura + '%';
-
-                // Nota: a ordem do ranking (#1, #2...) só se atualiza ao recarregar
-                // a página — mudar isto em direto exigiria reordenar o DOM todo.
             }
         });
     </script>

@@ -1,15 +1,29 @@
 <x-app-layout>
-    <div class="max-w-[100rem] mx-auto py-8 px-6 sm:px-8 lg:px-10">
+    <div class="max-w-[100rem] mx-auto py-4 sm:py-8 px-3 sm:px-8 lg:px-10" x-data="{ mobileTab: 'matriz' }">
 
         @php
             $maxHoras = collect($people_ranked)->max('total_hours') ?: 1;
         @endphp
 
         {{-- CABEÇALHO --}}
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div>
                 <h2 class="text-xl font-bold text-[#3E2D1B]">Horas de Mar</h2>
-                <p class="text-sm text-[#776246] mt-1">{{ count($activities) }} atividades registadas</p>
+                <p class="text-xs sm:text-sm text-[#776246] mt-0.5">{{ count($activities) }} atividades registadas</p>
+            </div>
+
+            <!-- TABS DE NAVEGAÇÃO APENAS EM MOBILE -->
+            <div class="flex md:hidden bg-[#FAF7F5] border border-[#E4D5C3] p-1 rounded-xl">
+                <button type="button" @click="mobileTab = 'matriz'"
+                        :class="mobileTab === 'matriz' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors text-center">
+                    ⛵ Atividades
+                </button>
+                <button type="button" @click="mobileTab = 'ranking'"
+                        :class="mobileTab === 'ranking' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors text-center">
+                    🏆 Ranking
+                </button>
             </div>
         </div>
 
@@ -22,10 +36,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
             {{-- CLASSIFICAÇÃO POR PESSOA --}}
-            <div class="lg:col-span-1 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-6">Por Pessoa</h3>
+            <div class="lg:col-span-1 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6"
+                 :class="{ 'hidden md:block': mobileTab !== 'ranking', 'block': mobileTab === 'ranking' }">
+                <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest mb-4 sm:mb-6">Por Pessoa</h3>
 
-                <div class="flex flex-col gap-5" id="painel-por-pessoa">
+                <div class="flex flex-col gap-4 sm:gap-5" id="painel-por-pessoa">
                     @forelse($people_ranked as $i => $person)
                         @php
                             $initials = collect(explode(' ', trim($person['name'])))->filter()->map(fn($w) => mb_substr($w, 0, 1))->take(2)->implode('');
@@ -39,14 +54,14 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-baseline gap-1.5">
-                                    <span class="text-lg font-bold text-[#2563EB] leading-none valor-horas" data-raw="{{ $person['total_hours'] }}">{{ $horasFmt }}</span>
-                                    <span class="text-[11px] text-[#B0977A] uppercase tracking-wide">horas</span>
+                                    <span class="text-base sm:text-lg font-bold text-[#2563EB] leading-none valor-horas" data-raw="{{ $person['total_hours'] }}">{{ $horasFmt }}</span>
+                                    <span class="text-[10px] sm:text-[11px] text-[#B0977A] uppercase tracking-wide">horas</span>
                                 </div>
-                                <span class="text-sm font-medium text-[#3E2D1B] truncate block mt-0.5">{{ $person['name'] }}</span>
-                                <div class="h-1.5 bg-[#F2ECE7] rounded-full mt-2 overflow-hidden">
+                                <span class="text-xs sm:text-sm font-medium text-[#3E2D1B] truncate block mt-0.5">{{ $person['name'] }}</span>
+                                <div class="h-1.5 bg-[#F2ECE7] rounded-full mt-1.5 overflow-hidden">
                                     <div class="h-full bg-[#2563EB] rounded-full barra-horas" style="width: {{ $barWidth }}%"></div>
                                 </div>
-                                <p class="text-[11px] text-[#B0977A] mt-1"><span class="valor-atividades">{{ $person['total_activities'] }}</span> saídas</p>
+                                <p class="text-[10px] sm:text-[11px] text-[#B0977A] mt-1"><span class="valor-atividades">{{ $person['total_activities'] }}</span> saídas</p>
                             </div>
                         </div>
                     @empty
@@ -55,12 +70,14 @@
                 </div>
             </div>
 
-            {{-- GRELHA ESTILO GOOGLE SHEETS (pessoas em linhas, atividades em colunas) --}}
-            <div class="lg:col-span-3 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
+            {{-- ZONA PRINCIPAL DE REGISTOS --}}
+            <div class="lg:col-span-3 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6"
+                 :class="{ 'hidden md:block': mobileTab !== 'matriz', 'block': mobileTab === 'matriz' }">
+
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Atividades no Mar</h3>
+                    <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest">Atividades no Mar</h3>
                     <button type="button" onclick="document.getElementById('form-nova-atividade-mar').classList.toggle('hidden')"
-                            class="inline-flex items-center gap-1.5 bg-[#3E2D1B] hover:bg-[#2A1F13] text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
+                            class="inline-flex items-center gap-1.5 bg-[#3E2D1B] hover:bg-[#2A1F13] text-white text-xs font-semibold px-3 py-2 rounded-xl transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -79,14 +96,57 @@
                     <div>
                         <label class="block text-xs font-bold text-[#776246] uppercase tracking-wider mb-1.5">Horas</label>
                         <input type="number" name="horas" step="0.5" min="0" value="12.5" required
-                               class="w-24 rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#2563EB] focus:ring-[#2563EB]">
+                               class="w-full sm:w-24 rounded-xl border-[#E4D5C3] bg-white text-[#3E2D1B] text-sm focus:border-[#2563EB] focus:ring-[#2563EB]">
                     </div>
                     <button type="submit" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
                         Adicionar
                     </button>
                 </form>
 
-                <div class="overflow-auto -mx-2 max-h-[640px] border border-[#E4D5C3] rounded-xl">
+                <!-- VISÃO EM CARTÕES PARA MOBILE (Exibida apenas abaixo de md) -->
+                <div class="block md:hidden space-y-3">
+                    @forelse($activities as $act)
+                        <div x-data="{ open: false }" class="border border-[#E4D5C3] bg-[#FAF7F5] rounded-2xl p-3.5">
+                            <div @click="open = !open" class="flex items-center justify-between cursor-pointer">
+                                <div>
+                                    <h4 class="text-sm font-bold text-[#3E2D1B]">{{ $act['nome'] }}</h4>
+                                    <span class="text-xs font-semibold text-[#2563EB]">
+                                        {{ rtrim(rtrim(number_format($act['horas'], 1, ',', ''), '0'), ',') }} horas
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] uppercase font-bold text-[#776246]" x-text="open ? 'Fechar' : 'Gerir'"></span>
+                                    <div class="w-6 h-6 rounded-full bg-white border border-[#E4D5C3] flex items-center justify-center text-[#776246] transition-transform duration-200"
+                                         :class="{ 'rotate-180': open }">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div x-show="open" x-cloak class="mt-3 pt-3 border-t border-[#E4D5C3] space-y-2">
+                                @foreach($people as $person)
+                                    @php $participou = in_array($act['col'], $person['atividades_cols'], true); @endphp
+                                    <label class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E4D5C3] active:bg-gray-50 cursor-pointer">
+                                        <span class="text-xs font-medium text-[#3E2D1B]">{{ $person['name'] }}</span>
+                                        <input type="checkbox"
+                                               class="toggle-participacao-mar w-5 h-5 accent-[#2563EB] rounded cursor-pointer"
+                                               data-row="{{ $person['row'] }}"
+                                               data-col="{{ $act['col'] }}"
+                                               data-horas="{{ $act['horas'] }}"
+                                            {{ $participou ? 'checked' : '' }}>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-[#776246] text-center py-6">Sem atividades registadas.</p>
+                    @endforelse
+                </div>
+
+                <!-- VISÃO EM TABELA MATRIZ PARA DESKTOP (Exibida a partir de md) -->
+                <div class="hidden md:block overflow-auto -mx-2 max-h-[640px] border border-[#E4D5C3] rounded-xl">
                     <table class="border-collapse text-sm min-w-full">
                         <thead>
                         <tr>
@@ -127,6 +187,7 @@
                         </tbody>
                     </table>
                 </div>
+
             </div>
         </div>
 
