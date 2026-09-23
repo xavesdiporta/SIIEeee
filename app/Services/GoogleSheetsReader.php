@@ -10,7 +10,7 @@ class GoogleSheetsReader
 {
     protected Sheets $sheets;
 
-    // colunas M, Q, R, S, T, U, V, W, X, Y, Z (0-indexado a partir de A=0)
+    // Colunas M, Q, R, S, T, U, V, W, X, Y, Z (0-indexado a partir de A=0)
     protected array $personCols = [12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
 
     public function __construct()
@@ -54,7 +54,7 @@ class GoogleSheetsReader
      */
     public function readNoitesCampo(string $spreadsheetId): array
     {
-        // 1. Aumentado o intervalo para A1:ZZ1000 para apanhar todas as atividades
+        // Lê até à linha 1000 para garantir que apanha todas as atividades e ajustes
         $response = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:ZZ1000');
         $rows = $response->getValues() ?? [];
 
@@ -65,70 +65,69 @@ class GoogleSheetsReader
         $activities = [];
         $adjustmentRowIndex = null;
 
-        // 2. Mapeia todas as atividades
+        // 1. Mapeia todas as atividades da folha
         foreach ($rows as $rowIndex => $row) {
+            if ($rowIndex < 3) { // Salta as primeiras 3 linhas (cabeçalhos e nomes)
+                continue;
+            }
+
             $nomeLinha = strtolower(trim($row[1] ?? ''));
 
-            if ($rowIndex >= 3) {
-                // Deteta a linha de Ajustes / Secções Anteriores
-                if (str_contains($nomeLinha, 'ajuste') || str_contains($nomeLinha, 'secções') || str_contains($nomeLinha, 'seccoes') || str_contains($nomeLinha, 'transito')) {
-                    $adjustmentRowIndex = $rowIndex;
-                    continue;
-                }
-
-                // Se for linha de subtotal, ignora (continue) sem interromper a leitura das restantes atividades
-                if (str_contains($nomeLinha, 'total')) {
-                    continue;
-                }
-
-                if (!empty($row[1])) {
-                    // Prepara as colunas dos participantes marcados
-                    $participantesCols = [];
-                    foreach ($this->personCols as $colIndex) {
-                        $val = $row[$colIndex] ?? null;
-
-                        $marcado = match (true) {
-                            is_bool($val) => $val,
-                            is_numeric($val) => (float)$val > 0,
-                            is_string($val) => in_array(strtolower(trim($val)), ['true', '1', 'x', 'sim', 'vade', 'verdadeiro', 'v']),
-                            default => false,
-                        };
-
-                        if ($marcado) {
-                            $participantesCols[] = $colIndex;
-                        }
-                    }
-
-                    // Correção: Noites é a Coluna D ($row[3]) e Acantonamento é a Coluna E ($row[4])
-                    $noitesVal = (float) str_replace(',', '.', $row[3] ?? 0);
-                    $acantVal = in_array(strtolower(trim((string)($row[4] ?? ''))), ['true', 'sim', '1', 'verdadeiro', 'v', 'x']);
-
-                    $activities[] = [
-                        'row' => $rowIndex + 1,
-                        'data' => $row[0] ?? '',
-                        'nome' => $row[1] ?? '',
-                        'local' => $row[2] ?? '',
-                        'noites' => $noitesVal,
-                        'acantonamento' => $acantVal,
-                        'participantes_cols' => $participantesCols,
-                    ];
-                }
+            // Deteta a linha de Ajustes / Secções Anteriores
+            if (str_contains($nomeLinha, 'ajuste') || str_contains($nomeLinha, 'secções') || str_contains($nomeLinha, 'seccoes') || str_contains($nomeLinha, 'anteriores') || str_contains($nomeLinha, 'transito')) {
+                $adjustmentRowIndex = $rowIndex;
+                continue;
             }
-        }
 
-        if ($adjustmentRowIndex === null && isset($rows[3])) {
-            $adjustmentRowIndex = 3;
+            // Ignora linhas de subtotal sem parar o ciclo (continue em vez de break)
+            if (str_contains($nomeLinha, 'total')) {
+                continue;
+            }
+
+            // Se for uma atividade válida com nome na Coluna B ($row[1])
+            if (!empty($row[1])) {
+                $participantesCols = [];
+                foreach ($this->personCols as $colIndex) {
+                    $val = $row[$colIndex] ?? null;
+
+                    $marcado = match (true) {
+                        is_bool($val) => $val,
+                        is_numeric($val) => (float)$val > 0,
+                        is_string($val) => in_array(strtolower(trim($val)), ['true', '1', 'x', 'sim', 'vade', 'verdadeiro', 'v']),
+                        default => false,
+                    };
+
+                    if ($marcado) {
+                        $participantesCols[] = $colIndex;
+                    }
+                }
+
+                // Coluna D (índice 3) = Noites | Coluna E (índice 4) = Acantonamento
+                $noitesVal = (float) str_replace(',', '.', $row[3] ?? 0);
+                $acantVal = in_array(strtolower(trim((string)($row[4] ?? ''))), ['true', 'sim', '1', 'verdadeiro', 'v', 'x']);
+
+                $activities[] = [
+                    'row' => $rowIndex + 1, // Linha real no Google Sheets (1-based)
+                    'data' => $row[0] ?? '',
+                    'nome' => $row[1] ?? '',
+                    'local' => $row[2] ?? '',
+                    'noites' => $noitesVal,
+                    'acantonamento' => $acantVal,
+                    'participantes_cols' => $participantesCols,
+                ];
+            }
         }
 
         $people = [];
 
-        // 3. Calcula os totais de cada pessoa
+        // 2. Calcula o total de cada pessoa (Atividades + Ajuste anterior)
         foreach ($this->personCols as $colIndex) {
-            $personName = $rows[2][$colIndex] ?? '';
+            $personName = trim($rows[2][$colIndex] ?? '');
             if (empty($personName)) {
                 continue;
             }
 
+            // Lê o valor da linha de Ajuste para esta pessoa (se existir)
             $ajuste = 0;
             if ($adjustmentRowIndex !== null && isset($rows[$adjustmentRowIndex][$colIndex])) {
                 $ajuste = (float) str_replace(',', '.', $rows[$adjustmentRowIndex][$colIndex]);
@@ -297,7 +296,6 @@ class GoogleSheetsReader
 
         $newRow = $afterRow + 1;
 
-        // Inserção ajustada para as colunas A a D (Data, Nome, Local, Noites)
         $this->sheets->spreadsheets_values->update(
             $spreadsheetId,
             "A{$newRow}:D{$newRow}",
