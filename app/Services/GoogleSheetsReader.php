@@ -60,50 +60,89 @@ class GoogleSheetsReader
         $response = $this->service->spreadsheets_values->get($spreadsheetId, 'A1:ZZ100');
         $rows = $response->getValues() ?? [];
 
-        // 1. Identificar atividades (linhas) e pessoas (colunas)
-        // ... (lógica existente para extrair $activities e $people) ...
+        if (empty($rows)) {
+            return ['activities' => [], 'people' => []];
+        }
+
+        $activities = [];
+        $adjustmentRowIndex = null;
+
+        // 1. Identificar atividades e a linha de Ajustes
+        foreach ($rows as $rowIndex => $row) {
+            $nomeLinha = strtolower(trim($row[1] ?? '')); // Coluna B (Nome da Atividade/Linha)
+
+            if ($rowIndex >= 3) { // Linha 4 em diante no Sheets (0-indexed é 3)
+                // Detecta a linha de ajustes/secções anteriores
+                if (str_contains($nomeLinha, 'ajuste') || str_contains($nomeLinha, 'secções') || str_contains($nomeLinha, 'seccoes')) {
+                    $adjustmentRowIndex = $rowIndex;
+                    continue;
+                }
+
+                // Pára se chegar à linha de Total
+                if (str_contains($nomeLinha, 'total')) {
+                    break;
+                }
+
+                // Adiciona como atividade se tiver nome
+                if (!empty($row[1])) {
+                    $activities[] = [
+                        'row' => $rowIndex + 1, // Linha real no Sheets (1-based)
+                        'data' => $row[0] ?? '',
+                        'nome' => $row[1] ?? '',
+                        'local' => $row[2] ?? '',
+                        'noites' => (float) str_replace(',', '.', $row[4] ?? 0), // Coluna E (Noites)
+                        'acantonamento' => in_array(strtolower(trim($row[5] ?? '')), ['true', 'sim', '1', 'verdadeiro']), // Coluna F (Acantonamento)
+                    ];
+                }
+            }
+        }
 
         $people = [];
 
-        // Exemplo: supondo que as colunas das pessoas começam na posição $personCols
+        // 2. Processar cada pessoa (SOMA.SE.S + Ajuste)
         foreach ($this->personCols as $colIndex) {
-            $personName = $rows[2][$colIndex] ?? ''; // Ex: linha 3 tem o nome da pessoa
-            if (empty($personName)) continue;
+            $personName = $rows[2][$colIndex] ?? ''; // Nome da pessoa (linha 3)
+            if (empty($personName)) {
+                continue;
+            }
 
-            // 💡 AQUI ESTÁ A SOLUÇÃO:
-            // Vamos buscar o valor acumulado/ajuste de secções passadas
-            // Ajusta o índice $rows[3][$colIndex] ou a coluna fixa onde guardas o valor anterior no Sheets
-            $noitesAnteriores = (int) ($rows[3][$colIndex] ?? 0); // Ex: Linha 4 tem os "Ajustes / Secções Anteriores"
+            // Obtém o valor de Ajuste (LIN()-2 na tua fórmula)
+            $ajuste = 0;
+            if ($adjustmentRowIndex !== null && isset($rows[$adjustmentRowIndex][$colIndex])) {
+                $ajuste = (float) str_replace(',', '.', $rows[$adjustmentRowIndex][$colIndex]);
+            }
 
             $totalNoitesAtividades = 0;
             $totalAtividadesCount = 0;
             $participantesCols = [];
 
             foreach ($activities as $act) {
-                $rowIdx = $act['row'] - 1; // Ajuste de índice 0-based
+                $rowIdx = $act['row'] - 1;
                 $val = strtolower(trim($rows[$rowIdx][$colIndex] ?? ''));
 
-                $participou = in_array($val, ['true', '1', 'x', 'sim', 'vade']);
+                $participou = in_array($val, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro']);
 
                 if ($participou) {
                     $participantesCols[] = $act['col'];
                     $totalAtividadesCount++;
 
+                    // SOMA.SE.S: Só soma se Acantonamento = FALSO
                     if (!$act['acantonamento']) {
                         $totalNoitesAtividades += $act['noites'];
                     }
                 }
             }
 
-            // TOTAL REAL = Noites Anteriores/Ajustes + Noites das Atividades Atuais
-            $totalNightsReal = $noitesAnteriores + $totalNoitesAtividades;
+            // Total Real = SOMA.SE.S + Ajuste (INDIRECTO)
+            $totalNightsReal = $totalNoitesAtividades + $ajuste;
 
             $people[] = [
                 'col' => $colIndex,
                 'name' => $personName,
-                'past_nights' => $noitesAnteriores,
-                'total_nights' => $totalNightsReal, // Agora sim, inclui os 101 das secções anteriores!
+                'past_nights' => $ajuste,
+                'total_nights' => $totalNightsReal, 
                 'total_activities' => $totalAtividadesCount,
+                'atividades_cols' => $participantesCols,
             ];
         }
 
