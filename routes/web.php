@@ -88,7 +88,7 @@ Route::middleware([
         Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampo'])->name('noites-campo');
         Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampo'])->name('noites-campo.store');
         Route::post('/noitesdecampo/toggle', [ExcelSheetController::class, 'toggleParticipacaoNoitesCampo'])->name('noites-campo.toggle');
-        Route::delete('noites-campo/delete', [ExcelSheetController::class, 'destroyAtividadeNoitesCampo'])->name('cla.noites-campo.destroy');
+        Route::delete('noites-campo/delete', [ExcelSheetController::class, 'destroyAtividadeNoitesCampo'])->name('noites-campo.destroy');
         // Horas de Mar
         Route::get('/horasmar', [ExcelSheetController::class, 'horasMar'])->name('horasmar');
         Route::post('/horasmar/atividade', [ExcelSheetController::class, 'storeAtividadeHorasMar'])->name('horasmar.store');

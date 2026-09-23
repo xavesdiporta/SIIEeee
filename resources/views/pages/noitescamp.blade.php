@@ -152,7 +152,7 @@
                                 <!-- BARRA SUPERIOR DO GERIR COM BOTÃO ELIMINAR -->
                                 <div class="flex items-center justify-between pb-2 border-b border-[#E4D5C3]">
                                     <span class="text-[10px] font-bold text-[#776246] uppercase tracking-wider">Marcar Participantes</span>
-                                    <form method="POST" action="{{ route('cla.noites-campo.destroy') }}" onsubmit="return confirm('Tem a certeza que deseja eliminar esta atividade?');">
+                                    <form method="POST" action="{{ route('noites-campo.destroy') }}" onsubmit="return confirm('Tem a certeza que deseja eliminar esta atividade?');">
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="row" value="{{ $act['row'] }}">
