@@ -6,14 +6,12 @@
             $maxNoites = collect($people_ranked)->max('total_nights') ?: 1;
         @endphp
 
-        {{-- CABEÇALHO --}}
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div>
                 <h2 class="text-xl font-bold text-[#3E2D1B]">Noites de Campo</h2>
                 <p class="text-xs sm:text-sm text-[#776246] mt-0.5">{{ count($activities) }} atividades registadas · {{ $totalNoites }} noites no total</p>
             </div>
 
-            <!-- TABS DE NAVEGAÇÃO APENAS EM MOBILE -->
             <div class="flex md:hidden bg-[#FAF7F5] border border-[#E4D5C3] p-1 rounded-xl">
                 <button type="button" @click="mobileTab = 'matriz'"
                         :class="mobileTab === 'matriz' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
@@ -23,11 +21,12 @@
                     </svg>
                     <span>Atividades</span>
                 </button>
+
                 <button type="button" @click="mobileTab = 'ranking'"
                         :class="mobileTab === 'ranking' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
                         class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4a5 5 0 005 5h4a5 5 0 005-5V3M5 3h14M5 3H3v2a3 3 0 003 3h2M19 3h2v2a3 3 0 01-3 3h-2m-8 7v3m-3 3h10" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15a6 6 0 006-6V3H6v6a6 6 0 006 6zm0 0v3m-3 3h6M4 5h2v3a3 3 0 01-3-3V5zm16 0h-2v3a3 3 0 003-3V5z" />
                     </svg>
                     <span>Ranking</span>
                 </button>
@@ -42,7 +41,6 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
-            {{-- CLASSIFICAÇÃO POR PESSOA --}}
             <div class="lg:col-span-1 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6"
                  :class="{ 'hidden md:block': mobileTab !== 'ranking', 'block': mobileTab === 'ranking' }">
                 <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest mb-4 sm:mb-6">Por Pessoa</h3>
@@ -76,7 +74,6 @@
                 </div>
             </div>
 
-            {{-- ZONA PRINCIPAL DE REGISTOS --}}
             <div class="lg:col-span-3 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6"
                  :class="{ 'hidden md:block': mobileTab !== 'matriz', 'block': mobileTab === 'matriz' }">
 
@@ -91,7 +88,6 @@
                     </button>
                 </div>
 
-                {{-- Formulário de nova atividade --}}
                 <form id="form-nova-atividade" method="POST" action="{{ route('cla.noites-campo.store') }}"
                       class="hidden flex flex-col sm:flex-row sm:items-end gap-3 mb-6 bg-[#FAF7F5] border border-[#E4D5C3] rounded-2xl p-4">
                     @csrf
@@ -120,7 +116,6 @@
                     </button>
                 </form>
 
-                <!-- VISÃO EM CARTÕES PARA MOBILE -->
                 <div class="block md:hidden space-y-3">
                     @forelse($activities as $act)
                         <div x-data="{ open: false }" class="border border-[#E4D5C3] bg-[#FAF7F5] rounded-2xl p-3.5">
@@ -155,7 +150,6 @@
                             </div>
 
                             <div x-show="open" x-cloak class="mt-3 pt-3 border-t border-[#E4D5C3] space-y-2">
-                                <!-- BARRA SUPERIOR DO GERIR COM BOTÃO ELIMINAR -->
                                 <div class="flex items-center justify-between pb-2 border-b border-[#E4D5C3]">
                                     <span class="text-[10px] font-bold text-[#776246] uppercase tracking-wider">Marcar Participantes</span>
                                     <form method="POST" action="{{ route('cla.noites-campo.destroy') }}" onsubmit="return confirm('Tem a certeza que deseja eliminar esta atividade?');">
@@ -190,7 +184,6 @@
                     @endforelse
                 </div>
 
-                <!-- VISÃO EM TABELA MATRIZ PARA DESKTOP -->
                 <div class="hidden md:block overflow-auto -mx-2 max-h-[640px] border border-[#E4D5C3] rounded-xl">
                     <table class="border-collapse text-sm min-w-full">
                         <thead>
@@ -208,7 +201,6 @@
                                     {{ strtoupper($ini) }}
                                 </th>
                             @endforeach
-                            {{-- Coluna de Ação para eliminar em Desktop --}}
                             <th class="sticky top-0 right-0 z-20 bg-[#FAF7F5] border-b border-l border-[#E4D5C3] px-3 py-2 text-center text-xs font-bold text-[#776246] uppercase whitespace-nowrap">Ação</th>
                         </tr>
                         </thead>
@@ -235,7 +227,6 @@
                                             {{ $participou ? 'checked' : '' }}>
                                     </td>
                                 @endforeach
-                                {{-- Botão de apagar alinhado à direita na tabela --}}
                                 <td class="sticky right-0 z-10 bg-white border-b border-l border-[#E4D5C3] px-2 py-2 text-center whitespace-nowrap">
                                     <form method="POST" action="{{ route('cla.noites-campo.destroy') }}" onsubmit="return confirm('Tem a certeza que deseja eliminar esta atividade?');">
                                         @csrf
