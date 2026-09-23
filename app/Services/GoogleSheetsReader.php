@@ -15,6 +15,7 @@ class GoogleSheetsReader
 
     public function __construct()
     {
+        $client = new Client();
         $credentialsPath = config('services.google_drive.credentials');
 
         $fullPath = str_starts_with($credentialsPath, '/')
@@ -57,6 +58,7 @@ class GoogleSheetsReader
      */
     public function readNoitesCampo(string $spreadsheetId): array
     {
+        // $this->service já existe e está inicializado
         $response = $this->service->spreadsheets_values->get($spreadsheetId, 'A1:ZZ100');
         $rows = $response->getValues() ?? [];
 
@@ -67,31 +69,28 @@ class GoogleSheetsReader
         $activities = [];
         $adjustmentRowIndex = null;
 
-        // 1. Identificar atividades e a linha de Ajustes
+        // 1. Mapeia as atividades e localiza a linha de Ajustes
         foreach ($rows as $rowIndex => $row) {
-            $nomeLinha = strtolower(trim($row[1] ?? '')); // Coluna B (Nome da Atividade/Linha)
+            $nomeLinha = strtolower(trim($row[1] ?? ''));
 
-            if ($rowIndex >= 3) { // Linha 4 em diante no Sheets (0-indexed é 3)
-                // Detecta a linha de ajustes/secções anteriores
+            if ($rowIndex >= 3) {
                 if (str_contains($nomeLinha, 'ajuste') || str_contains($nomeLinha, 'secções') || str_contains($nomeLinha, 'seccoes')) {
                     $adjustmentRowIndex = $rowIndex;
                     continue;
                 }
 
-                // Pára se chegar à linha de Total
                 if (str_contains($nomeLinha, 'total')) {
                     break;
                 }
 
-                // Adiciona como atividade se tiver nome
                 if (!empty($row[1])) {
                     $activities[] = [
-                        'row' => $rowIndex + 1, // Linha real no Sheets (1-based)
+                        'row' => $rowIndex + 1,
                         'data' => $row[0] ?? '',
                         'nome' => $row[1] ?? '',
                         'local' => $row[2] ?? '',
-                        'noites' => (float) str_replace(',', '.', $row[4] ?? 0), // Coluna E (Noites)
-                        'acantonamento' => in_array(strtolower(trim($row[5] ?? '')), ['true', 'sim', '1', 'verdadeiro']), // Coluna F (Acantonamento)
+                        'noites' => (float) str_replace(',', '.', $row[4] ?? 0),
+                        'acantonamento' => in_array(strtolower(trim($row[5] ?? '')), ['true', 'sim', '1', 'verdadeiro']),
                     ];
                 }
             }
@@ -99,14 +98,13 @@ class GoogleSheetsReader
 
         $people = [];
 
-        // 2. Processar cada pessoa (SOMA.SE.S + Ajuste)
+        // 2. Calcula os totais com o Ajuste / Secções Anteriores
         foreach ($this->personCols as $colIndex) {
-            $personName = $rows[2][$colIndex] ?? ''; // Nome da pessoa (linha 3)
+            $personName = $rows[2][$colIndex] ?? '';
             if (empty($personName)) {
                 continue;
             }
 
-            // Obtém o valor de Ajuste (LIN()-2 na tua fórmula)
             $ajuste = 0;
             if ($adjustmentRowIndex !== null && isset($rows[$adjustmentRowIndex][$colIndex])) {
                 $ajuste = (float) str_replace(',', '.', $rows[$adjustmentRowIndex][$colIndex]);
@@ -123,26 +121,22 @@ class GoogleSheetsReader
                 $participou = in_array($val, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro']);
 
                 if ($participou) {
-                    $participantesCols[] = $act['col'];
+                    $participantesCols[] = $colIndex;
                     $totalAtividadesCount++;
 
-                    // SOMA.SE.S: Só soma se Acantonamento = FALSO
                     if (!$act['acantonamento']) {
                         $totalNoitesAtividades += $act['noites'];
                     }
                 }
             }
 
-            // Total Real = SOMA.SE.S + Ajuste (INDIRECTO)
-            $totalNightsReal = $totalNoitesAtividades + $ajuste;
-
             $people[] = [
                 'col' => $colIndex,
                 'name' => $personName,
                 'past_nights' => $ajuste,
-                'total_nights' => $totalNightsReal, 
+                'total_nights' => $totalNoitesAtividades + $ajuste, // Soma atividades + ajuste anterior
                 'total_activities' => $totalAtividadesCount,
-                'atividades_cols' => $participantesCols,
+                'participantes_cols' => $participantesCols,
             ];
         }
 
@@ -152,14 +146,33 @@ class GoogleSheetsReader
         ];
     }
 
-    /**
-     * Leitor dedicado à folha "Horas de Mar". Ao contrário de Noites de
-     * Campo, aqui a orientação está invertida: cada PESSOA é uma linha
-     * (a partir da linha 4, coluna D), e cada ATIVIDADE é uma coluna
-     * (nome na linha 2, horas dessa atividade na linha 3, a partir da
-     * coluna E). A participação é marcada nas células que cruzam pessoa
-     * (linha) com atividade (coluna).
-     */
+    public function updateCell(string $spreadsheetId, int $row, int $col, bool $value): void
+    {
+        // Converte o número da coluna para a letra correspondente do Sheets (ex: 12 -> L)
+        $colLetter = $this->getColLetter($col);
+        $range = "'Folha1'!{$colLetter}{$row}"; // Ajusta o nome da aba se necessário
+
+        $body = new \Google\Service\Sheets\ValueRange([
+            'values' => [[$value ? 'TRUE' : 'FALSE']],
+        ]);
+
+        $this->service->spreadsheets_values->update($spreadsheetId, $range, $body, [
+            'valueInputOption' => 'USER_ENTERED',
+        ]);
+    }
+
+    private function getColLetter(int $colIndex): string
+    {
+        $letter = '';
+        while ($colIndex > 0) {
+            $module = ($colIndex - 1) % 26;
+            $letter = chr(65 + $module) . $letter;
+            $colIndex = (int)(($colIndex - $module) / 26);
+        }
+        return $letter;
+    }
+
+
     public function readHorasMar(string $spreadsheetId): array
     {
         $formatted = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:S300')->getValues() ?? [];
@@ -311,26 +324,6 @@ class GoogleSheetsReader
     {
         $spreadsheet = $this->sheets->spreadsheets->get($spreadsheetId);
         return $spreadsheet->getSheets()[0]->getProperties()->getSheetId();
-    }
-
-    /**
-     * Escreve true/false numa célula específica (linha real da folha, coluna
-     * 0-indexada a partir de A). Usado para marcar/desmarcar participação.
-     */
-    public function updateCell(string $spreadsheetId, int $row, int $colIndex, bool $value): void
-    {
-        $range = $this->columnLetter($colIndex) . $row;
-
-        $values = new ValueRange([
-            'values' => [[$value]],
-        ]);
-
-        $this->sheets->spreadsheets_values->update(
-            $spreadsheetId,
-            $range,
-            $values,
-            ['valueInputOption' => 'RAW']
-        );
     }
 
     private function columnLetter(int $index): string
