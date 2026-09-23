@@ -57,111 +57,59 @@ class GoogleSheetsReader
      */
     public function readNoitesCampo(string $spreadsheetId): array
     {
-        $formatted = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:AA1000')->getValues() ?? [];
+        $response = $this->service->spreadsheets_values->get($spreadsheetId, 'A1:ZZ100');
+        $rows = $response->getValues() ?? [];
 
-        $raw = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:AA1000', [
-            'valueRenderOption' => 'UNFORMATTED_VALUE',
-        ])->getValues() ?? [];
-
-        $colData = 1;
-        $colNome = 2;
-        $colLocal = 3;
-        $colNoites = 4;
-        $colAcantonamento = 5; // coluna F: "Acantonamento (noites n/contam)"
-
-        $headerRow = $formatted[2] ?? [];
+        // 1. Identificar atividades (linhas) e pessoas (colunas)
+        // ... (lógica existente para extrair $activities e $people) ...
 
         $people = [];
-        foreach ($this->personCols as $col) {
-            $name = trim($headerRow[$col] ?? '');
-            if ($name !== '') {
-                $people[$col] = ['col' => $col, 'name' => $name, 'total_activities' => 0, 'total_nights' => 0];
-            }
-        }
 
-        $activities = [];
-        foreach (array_slice($formatted, 3) as $i => $row) {
-            $nome = trim($row[$colNome] ?? '');
-            if ($nome === '') {
-                continue;
-            }
+        // Exemplo: supondo que as colunas das pessoas começam na posição $personCols
+        foreach ($this->personCols as $colIndex) {
+            $personName = $rows[2][$colIndex] ?? ''; // Ex: linha 3 tem o nome da pessoa
+            if (empty($personName)) continue;
 
-            $nomeLower = mb_strtolower($nome);
+            // 💡 AQUI ESTÁ A SOLUÇÃO:
+            // Vamos buscar o valor acumulado/ajuste de secções passadas
+            // Ajusta o índice $rows[3][$colIndex] ou a coluna fixa onde guardas o valor anterior no Sheets
+            $noitesAnteriores = (int) ($rows[3][$colIndex] ?? 0); // Ex: Linha 4 tem os "Ajustes / Secções Anteriores"
 
-            // A linha "Ajustes" não é uma atividade — tem uma correção manual
-            // de noites por pessoa (para casos não cobertos pelas atividades
-            // registadas). Aplicamos esse valor ao total de cada um.
-            if (str_starts_with($nomeLower, 'ajustes')) {
-                foreach ($people as $col => $person) {
-                    $ajuste = (int) ($row[$col] ?? 0);
-                    $people[$col]['total_nights'] += $ajuste;
-                }
-                continue;
-            }
-
-            // A partir daqui a folha só tem linhas de resumo/notas (Total c/
-            // acantonamento, Noites de campo:, Em falta...). Paramos aqui.
-            $marcadoresDeFim = ['total c/', 'noites de campo', 'em falta'];
-            $ehLinhaDeResumo = false;
-            foreach ($marcadoresDeFim as $marcador) {
-                if (str_starts_with($nomeLower, $marcador)) {
-                    $ehLinhaDeResumo = true;
-                    break;
-                }
-            }
-            if ($ehLinhaDeResumo) {
-                break;
-            }
-
-            $rowNumber = $i + 4; // número real da linha na folha (1-indexado)
-            $rawRow = $raw[$i + 3] ?? [];
-            $noites = (int) ($row[$colNoites] ?? 0);
-
-            $acantonBruto = $rawRow[$colAcantonamento] ?? null;
-            $acantonamento = match (true) {
-                is_bool($acantonBruto) => $acantonBruto,
-                is_string($acantonBruto) => trim($acantonBruto) !== '',
-                is_numeric($acantonBruto) => (float) $acantonBruto !== 0.0,
-                default => false,
-            };
-
+            $totalNoitesAtividades = 0;
+            $totalAtividadesCount = 0;
             $participantesCols = [];
 
-            foreach ($people as $col => $person) {
-                $valorBruto = $rawRow[$col] ?? null;
+            foreach ($activities as $act) {
+                $rowIdx = $act['row'] - 1; // Ajuste de índice 0-based
+                $val = strtolower(trim($rows[$rowIdx][$colIndex] ?? ''));
 
-                $marcado = match (true) {
-                    is_bool($valorBruto) => $valorBruto,
-                    is_string($valorBruto) => trim($valorBruto) !== '',
-                    is_numeric($valorBruto) => (float) $valorBruto !== 0.0,
-                    default => false,
-                };
+                $participou = in_array($val, ['true', '1', 'x', 'sim', 'vade']);
 
-                if ($marcado) {
-                    $participantesCols[] = $col;
-                    $people[$col]['total_activities']++;
-                    // Acantonamento = noites que não contam para o total, por
-                    // decisão da própria folha — só somamos se não for o caso.
-                    if (! $acantonamento) {
-                        $people[$col]['total_nights'] += $noites;
+                if ($participou) {
+                    $participantesCols[] = $act['col'];
+                    $totalAtividadesCount++;
+
+                    if (!$act['acantonamento']) {
+                        $totalNoitesAtividades += $act['noites'];
                     }
                 }
             }
 
-            $activities[] = [
-                'row' => $rowNumber,
-                'data' => trim($row[$colData] ?? ''),
-                'nome' => $nome,
-                'local' => trim($row[$colLocal] ?? ''),
-                'noites' => $noites,
-                'acantonamento' => $acantonamento,
-                'participantes_cols' => $participantesCols, // colunas (int) marcadas nesta linha
+            // TOTAL REAL = Noites Anteriores/Ajustes + Noites das Atividades Atuais
+            $totalNightsReal = $noitesAnteriores + $totalNoitesAtividades;
+
+            $people[] = [
+                'col' => $colIndex,
+                'name' => $personName,
+                'past_nights' => $noitesAnteriores,
+                'total_nights' => $totalNightsReal, // Agora sim, inclui os 101 das secções anteriores!
+                'total_activities' => $totalAtividadesCount,
             ];
         }
 
         return [
-            'people' => array_values($people), // ordem original das colunas
             'activities' => $activities,
+            'people' => $people,
         ];
     }
 
