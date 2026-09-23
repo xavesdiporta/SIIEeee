@@ -141,7 +141,6 @@
                             </div>
                         </div>
 
-                        <!-- Seta Indicadora -->
                         <svg class="h-4 w-4 text-white/70 transition-transform duration-200 shrink-0 ml-1"
                              :class="{ 'rotate-180': userMenuOpen }"
                              xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -149,7 +148,6 @@
                         </svg>
                     </button>
 
-                    <!-- Submenu Desdobrável Inline (Expande para baixo de forma limpa) -->
                     <div x-show="userMenuOpen"
                          x-cloak
                          x-transition:enter="transition ease-out duration-200"
@@ -160,16 +158,6 @@
                          x-transition:leave-end="opacity-0 -translate-y-1"
                          class="mt-2 pt-2 space-y-1 border-t border-white/10">
 
-                        <!-- Opção: Perfil -->
-                        <a href="{{ route('profile.show') }}"
-                           class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-white/90 rounded-lg transition-colors hover:bg-black/20 hover:text-white">
-                            <svg class="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                            </svg>
-                            <span>{{ __('O meu Perfil') }}</span>
-                        </a>
-
-                        <!-- Opção: Sair -->
                         <form method="POST" action="{{ route('logout') }}" x-data>
                             @csrf
                             <a href="{{ route('logout') }}"
