@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pb-16">
+    <div class="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-6 lg:px-8 pb-16">
 
         @php
             $categories = [
@@ -16,13 +16,9 @@
                 ->pluck('reference')
                 ->toArray();
 
-            // Totais gerais das 6 dimensões — usados no cartão "Detalhe por Dimensão".
             $totalRefsAll = collect($categories)->sum(fn ($cat) => count($cat['refs']));
             $completedCountAll = count($completedRefs);
 
-            // Percentagens dos 3 pilares do Sistema de Progresso (Comunidade / Partida / Serviço).
-            // TODO: substitui isto por valores reais vindos do Controller, ex.:
-            // return view('progresso.dashboard', ['comunidadePercent' => $x, 'partidaPercent' => $y, 'servicoPercent' => $z]);
             $comunidadePercent = $comunidadePercent ?? 0;
             $partidaPercent    = $partidaPercent ?? 0;
             $servicoPercent    = $servicoPercent ?? 0;
@@ -47,8 +43,6 @@
             }
             $ringGradient = 'conic-gradient(from -90deg, ' . implode(', ', $stops) . ')';
 
-            // Eventos do mês do calendário do Clã — vêm do Controller via GoogleCalendarService::getEventsForMonth().
-            // Se ainda não estiverem a ser passados, o calendário mostra o mês vazio em vez de rebentar.
             $monthEvents = $monthEvents ?? [];
             $calendarUrl = $calendarUrl ?? null;
 
@@ -61,20 +55,16 @@
             $diasSemanaLongos = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
 
             $hoje = \Illuminate\Support\Carbon::today();
-            // $mesReferencia vem do Controller (a partir do ?mes=YYYY-MM); se não vier, cai no mês atual.
             $mesReferencia = $mesReferencia ?? $hoje->copy();
             $inicioMes = $mesReferencia->copy()->startOfMonth();
             $fimMes = $mesReferencia->copy()->endOfMonth();
 
-            // Agrupa os eventos do mês por dia (Y-m-d).
             $eventosPorDia = [];
             foreach ($monthEvents as $evento) {
                 $chave = $evento['start']->format('Y-m-d');
                 $eventosPorDia[$chave][] = $evento;
             }
 
-            // Constrói a grelha de semanas (segunda a domingo) que cobre o mês inteiro,
-            // incluindo os dias do mês anterior/seguinte necessários para completar a grelha.
             $inicioGrelha = $inicioMes->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
             $fimGrelha = $fimMes->copy()->endOfWeek(\Carbon\Carbon::MONDAY);
 
@@ -89,7 +79,6 @@
                 $semanas[] = $semana;
             }
 
-            // Agenda por baixo do calendário, com um rótulo em português já pronto para cada dia.
             $agendaDoMes = [];
             foreach ($eventosPorDia as $chave => $eventosDoDia) {
                 $dataObj = \Illuminate\Support\Carbon::parse($chave);
@@ -99,7 +88,6 @@
                 ];
             }
 
-            // Strings de navegação (?mes=YYYY-MM) para os botões de mês/ano anterior e seguinte.
             $urlBase = request()->url();
             $mesAnteriorQS   = $mesReferencia->copy()->subMonth()->format('Y-m');
             $mesSeguinteQS   = $mesReferencia->copy()->addMonth()->format('Y-m');
@@ -109,34 +97,34 @@
         @endphp
 
         {{-- CABEÇALHO --}}
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-[#3E2D1B]">O meu Sistema de Progresso</h1>
-            <p class="text-sm text-[#776246] mt-1">Acompanha a tua caminhada no Clã, pilar a pilar e dimensão a dimensão.</p>
+        <div class="mb-6 px-2 sm:px-0">
+            <h1 class="text-xl sm:text-2xl font-bold text-[#3E2D1B]">O meu Sistema de Progresso</h1>
+            <p class="text-xs sm:text-sm text-[#776246] mt-1">Acompanha a tua caminhada no Clã, pilar a pilar e dimensão a dimensão.</p>
         </div>
 
         {{-- LINHA DE TOPO: Círculo + Dados do utilizador --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-8 mb-6 flex flex-col md:flex-row items-center gap-8">
+        <div class="bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-8 mb-6 flex flex-col md:flex-row items-center gap-6 sm:gap-8">
 
             {{-- Círculo de Progresso --}}
-            <div class="flex flex-col items-center shrink-0">
-                <div class="relative w-64 h-64 rounded-full shadow-lg" style="background: {{ $ringGradient }};">
-                    <div class="absolute inset-8 bg-white rounded-full flex items-center justify-center">
-                        <div class="w-32 h-32 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden">
+            <div class="flex flex-col items-center shrink-0 w-full md:w-auto">
+                <div class="relative w-48 h-48 sm:w-64 sm:h-64 rounded-full shadow-lg" style="background: {{ $ringGradient }};">
+                    <div class="absolute inset-6 sm:inset-8 bg-white rounded-full flex items-center justify-center">
+                        <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-[#FAF7F5] border-4 border-[#F2ECE7] flex flex-col items-center justify-center shadow-inner overflow-hidden">
                             <img src="{{ asset('images/caminho.png') }}" alt="Caminho" class="w-full h-full object-cover">
                         </div>
                     </div>
 
-                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-[#E4D5C3] rounded-full px-4 py-1 shadow-sm">
-                        <span class="text-sm font-bold text-[#3E2D1B]">{{ $overallPillarPercent }}%</span>
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-[#E4D5C3] rounded-full px-3 py-0.5 sm:px-4 sm:py-1 shadow-sm">
+                        <span class="text-xs sm:text-sm font-bold text-[#3E2D1B]">{{ $overallPillarPercent }}%</span>
                     </div>
                 </div>
 
-                <div class="flex gap-4 mt-6 flex-wrap justify-center">
+                <div class="flex gap-3 sm:gap-4 mt-6 flex-wrap justify-center">
                     @foreach($pilares as $p)
                         <div class="flex items-center gap-1.5" title="{{ $p['label'] }}: {{ $p['percent'] }}%">
                             <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $p['color'] }};"></div>
-                            <span class="text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">{{ $p['label'] }}</span>
-                            <span class="text-xs text-[#B0977A]">{{ $p['percent'] }}%</span>
+                            <span class="text-[10px] sm:text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">{{ $p['label'] }}</span>
+                            <span class="text-[10px] sm:text-xs text-[#B0977A]">{{ $p['percent'] }}%</span>
                         </div>
                     @endforeach
                 </div>
@@ -146,51 +134,51 @@
 
             {{-- Dados do utilizador --}}
             <div class="flex-1 w-full">
-                <h2 class="text-xl font-bold text-[#3E2D1B] mb-4">Os meus dados</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <h2 class="text-lg sm:text-xl font-bold text-[#3E2D1B] mb-4 text-center md:text-left">Os meus dados</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
 
-                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Colaborador</p>
-                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ Auth::user()->name }}</p>
+                    <div class="bg-[#FAF7F5] p-3 sm:p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
+                        <div class="min-w-0 pr-2">
+                            <p class="text-[10px] sm:text-xs text-[#776246] uppercase font-bold tracking-wider truncate">Colaborador</p>
+                            <p class="text-sm sm:text-base text-[#3E2D1B] font-medium mt-0.5 truncate">{{ Auth::user()->name }}</p>
                         </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
+                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3] shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </div>
                     </div>
 
-                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Cargo</p>
-                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ Auth::user()->cargo ?? 'Não definido' }}</p>
+                    <div class="bg-[#FAF7F5] p-3 sm:p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
+                        <div class="min-w-0 pr-2">
+                            <p class="text-[10px] sm:text-xs text-[#776246] uppercase font-bold tracking-wider truncate">Cargo</p>
+                            <p class="text-sm sm:text-base text-[#3E2D1B] font-medium mt-0.5 truncate">{{ Auth::user()->cargo ?? 'Não definido' }}</p>
                         </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
+                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3] shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
                     </div>
 
-                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Nº Cartão CP</p>
-                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ Auth::user()->cp_card_number ?? 'Não definido' }}</p>
+                    <div class="bg-[#FAF7F5] p-3 sm:p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
+                        <div class="min-w-0 pr-2">
+                            <p class="text-[10px] sm:text-xs text-[#776246] uppercase font-bold tracking-wider truncate">Nº Cartão CP</p>
+                            <p class="text-sm sm:text-base text-[#3E2D1B] font-medium mt-0.5 truncate">{{ Auth::user()->cp_card_number ?? 'Não definido' }}</p>
                         </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
+                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3] shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-9 4h16a1 1 0 001-1V6a1 1 0 00-1-1H4a1 1 0 00-1 1v12a1 1 0 001 1z" />
                             </svg>
                         </div>
                     </div>
 
-                    <div class="bg-[#FAF7F5] p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-[#776246] uppercase font-bold tracking-wider">Nº CNE</p>
-                            <p class="text-base text-[#3E2D1B] font-medium mt-0.5">{{ Auth::user()->cne_number ?? 'Não definido' }}</p>
+                    <div class="bg-[#FAF7F5] p-3 sm:p-4 rounded-2xl border border-[#E4D5C3] flex justify-between items-center">
+                        <div class="min-w-0 pr-2">
+                            <p class="text-[10px] sm:text-xs text-[#776246] uppercase font-bold tracking-wider truncate">Nº CNE</p>
+                            <p class="text-sm sm:text-base text-[#3E2D1B] font-medium mt-0.5 truncate">{{ Auth::user()->cne_number ?? 'Não definido' }}</p>
                         </div>
-                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3]">
+                        <div class="bg-white p-2 rounded-lg border border-[#E4D5C3] shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -206,20 +194,20 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {{-- COLUNA ESQUERDA (2/3): Tabela de progresso por dimensão --}}
-            <div class="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Detalhe por Dimensão</h3>
+            <div class="lg:col-span-2 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                    <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest">Detalhe por Dimensão</h3>
                     <span class="text-xs font-semibold text-[#B0977A]">{{ $completedCountAll }} de {{ $totalRefsAll }} concluídos</span>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 sm:gap-y-5">
                     @foreach($categories as $cat)
                         @php
                             $catTotal = count($cat['refs']);
                             $catCompleted = collect($cat['refs'])->filter(fn ($r) => in_array($r, $completedRefs))->count();
                             $catPercent = $catTotal > 0 ? round(($catCompleted / $catTotal) * 100) : 0;
                         @endphp
-                        <div class="flex flex-col gap-2.5 p-3 rounded-2xl hover:bg-[#FAF7F5] transition-colors">
+                        <div class="flex flex-col gap-2 p-2.5 sm:p-3 rounded-2xl hover:bg-[#FAF7F5] transition-colors">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2.5">
                                     <div class="flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold text-white shadow-sm shrink-0"
@@ -236,7 +224,7 @@
                                     <div class="h-full rounded-full transition-all duration-500"
                                          style="width: {{ $catPercent }}%; background-color: {{ $cat['color'] }};"></div>
                                 </div>
-                                <div class="flex flex-wrap gap-2">
+                                <div class="flex flex-wrap gap-1.5 sm:gap-2">
                                     @foreach($cat['refs'] as $ref)
                                         @php $isCompleted = in_array($ref, $completedRefs); @endphp
                                         <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-300"
@@ -257,10 +245,10 @@
             </div>
 
             {{-- COLUNA DIREITA (1/3): Como funciona / legenda --}}
-            <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 flex flex-col">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest mb-4">Como funciona</h3>
+            <div class="bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6 flex flex-col">
+                <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest mb-4">Como funciona</h3>
 
-                <p class="text-sm text-[#3E2D1B] leading-relaxed mb-5">
+                <p class="text-xs sm:text-sm text-[#3E2D1B] leading-relaxed mb-5">
                     Cada pilar — <strong>Comunidade</strong>, <strong>Partida</strong> e <strong>Serviço</strong> —
                     representa uma etapa do teu Caminho. Dentro de cada um, o teu crescimento é avaliado
                     nas 6 dimensões pessoais à esquerda.
@@ -282,7 +270,7 @@
                 </div>
 
                 <details class="mt-auto border-t border-[#E4D5C3] pt-4 group">
-                    <summary class="cursor-pointer text-sm font-semibold text-[#3E2D1B] flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                    <summary class="cursor-pointer text-xs sm:text-sm font-semibold text-[#3E2D1B] flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
                         Ver as 6 dimensões
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[#776246] transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -302,38 +290,38 @@
         </div>
 
         {{-- LINHA DE BAIXO: Calendário do Clã (Google Calendar) --}}
-        <div class="bg-white rounded-[24px] shadow-sm border border-[#E4D5C3] p-6 mt-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <h3 class="text-sm font-bold text-[#776246] uppercase tracking-widest">Calendário do Clã</h3>
+        <div class="bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6 mt-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest">Calendário do Clã</h3>
 
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                     {{-- Navegação de ano/mês --}}
-                    <div class="flex items-center gap-0.5 bg-[#FAF7F5] border border-[#E4D5C3] rounded-full p-1">
+                    <div class="flex items-center gap-0.5 bg-[#FAF7F5] border border-[#E4D5C3] rounded-full p-1 mx-auto sm:mx-0">
                         <a href="{{ $urlBase }}?mes={{ $anoAnteriorQS }}" title="Ano anterior"
-                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                           class="p-1 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 19l-7-7 7-7M11 19l-7-7 7-7" />
                             </svg>
                         </a>
                         <a href="{{ $urlBase }}?mes={{ $mesAnteriorQS }}" title="Mês anterior"
-                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                           class="p-1 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
                             </svg>
                         </a>
 
-                        <span class="text-sm font-semibold text-[#3E2D1B] px-2 w-36 text-center select-none">
+                        <span class="text-xs sm:text-sm font-semibold text-[#3E2D1B] px-1.5 w-28 sm:w-36 text-center select-none truncate">
                             {{ $mesesNomes[$mesReferencia->format('m')] }} {{ $mesReferencia->format('Y') }}
                         </span>
 
                         <a href="{{ $urlBase }}?mes={{ $mesSeguinteQS }}" title="Mês seguinte"
-                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                           class="p-1 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
                             </svg>
                         </a>
                         <a href="{{ $urlBase }}?mes={{ $anoSeguinteQS }}" title="Ano seguinte"
-                           class="p-1.5 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
+                           class="p-1 rounded-full text-[#776246] hover:bg-white hover:text-[#3E2D1B] transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 5l7 7-7 7M13 5l7 7-7 7" />
                             </svg>
@@ -347,7 +335,7 @@
                     @if(!empty($calendarUrl))
                         <a href="{{ $calendarUrl }}" target="_blank" rel="noopener"
                            class="text-xs font-semibold text-[#B0977A] hover:text-[#3E2D1B] transition-colors shrink-0">
-                            Ver calendário completo →
+                            Ver completo →
                         </a>
                     @endif
                 </div>
@@ -356,7 +344,7 @@
             {{-- Cabeçalho dos dias da semana --}}
             <div class="grid grid-cols-7 gap-1 mb-1">
                 @foreach($diasSemanaCurtos as $dia)
-                    <div class="text-center text-[10px] font-bold text-[#B0977A] uppercase py-1">{{ $dia }}</div>
+                    <div class="text-center text-[9px] sm:text-[10px] font-bold text-[#B0977A] uppercase py-1">{{ $dia }}</div>
                 @endforeach
             </div>
 
@@ -370,14 +358,14 @@
                             $ehMesAtual = $dia->month === $mesReferencia->month;
                             $ehHoje = $dia->isSameDay($hoje);
                         @endphp
-                        <div class="aspect-square flex flex-col items-center justify-center gap-0.5 rounded-xl
+                        <div class="aspect-square flex flex-col items-center justify-center gap-0.5 rounded-lg sm:rounded-xl
                             {{ $ehMesAtual ? 'text-[#3E2D1B]' : 'text-[#E4D5C3]' }}
                             {{ $ehHoje ? 'bg-[#FAF7F5] border-2 border-[#DC2626] font-bold' : '' }}">
-                            <span class="text-xs">{{ $dia->format('j') }}</span>
+                            <span class="text-[11px] sm:text-xs">{{ $dia->format('j') }}</span>
                             @if(count($eventosDoDia) > 0)
                                 <span class="flex gap-0.5">
                                     @foreach(array_slice($eventosDoDia, 0, 3) as $ev)
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
+                                        <span class="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-[#DC2626]"></span>
                                     @endforeach
                                 </span>
                             @endif
@@ -390,25 +378,25 @@
             <div class="mt-6 border-t border-[#E4D5C3] pt-5">
                 @if(empty($agendaDoMes))
                     <div class="flex flex-col items-center justify-center text-center py-6">
-                        <div class="w-12 h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#FAF7F5] border border-[#E4D5C3] flex items-center justify-center mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6 text-[#776246]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </div>
-                        <p class="text-sm font-medium text-[#776246]">Sem eventos este mês</p>
-                        <p class="text-xs text-[#B0977A] mt-1">As atividades do Clã vão aparecer aqui assim que forem marcadas no calendário.</p>
+                        <p class="text-xs sm:text-sm font-medium text-[#776246]">Sem eventos este mês</p>
+                        <p class="text-[10px] sm:text-xs text-[#B0977A] mt-1">As atividades do Clã vão aparecer aqui assim que forem marcadas no calendário.</p>
                     </div>
                 @else
                     <div class="space-y-4">
                         @foreach($agendaDoMes as $dia)
                             <div>
-                                <p class="text-xs font-bold text-[#B0977A] uppercase tracking-wide mb-2">{{ $dia['label'] }}</p>
+                                <p class="text-[10px] sm:text-xs font-bold text-[#B0977A] uppercase tracking-wide mb-2">{{ $dia['label'] }}</p>
                                 <div class="space-y-2">
                                     @foreach($dia['eventos'] as $evento)
-                                        <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2 sm:gap-3">
                                             <span class="w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0"></span>
-                                            <p class="text-sm text-[#3E2D1B] flex-1 min-w-0 truncate">{{ $evento['title'] }}</p>
-                                            <p class="text-xs text-[#776246] shrink-0">
+                                            <p class="text-xs sm:text-sm text-[#3E2D1B] flex-1 min-w-0 truncate">{{ $evento['title'] }}</p>
+                                            <p class="text-[10px] sm:text-xs text-[#776246] shrink-0">
                                                 @if($evento['all_day'])
                                                     Todo o dia
                                                 @else
