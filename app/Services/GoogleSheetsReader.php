@@ -54,7 +54,6 @@ class GoogleSheetsReader
      */
     public function readNoitesCampo(string $spreadsheetId): array
     {
-        // 1. Obter todas as linhas até à linha 1000
         $response = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:ZZ1000');
         $rows = $response->getValues() ?? [];
 
@@ -66,23 +65,23 @@ class GoogleSheetsReader
         $adjustmentRowIndex = null;
         $noitesCampoRowIndex = null;
 
-        $isChecked = function ($val): bool {
+        // Helper para validar marcações das checkboxes das pessoas
+        $isPersonChecked = function ($val): bool {
             if (is_bool($val)) return $val;
             if (is_numeric($val)) return (float)$val > 0;
             if (is_string($val)) {
                 $v = strtolower(trim($val));
-                return in_array($v, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro', 'v'], true);
+                return in_array($v, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro', 'v', '●'], true);
             }
             return false;
         };
 
-        // 2. Analisar as linhas da folha
+        // 1. Analisar as linhas da folha
         foreach ($rows as $rowIndex => $row) {
             if ($rowIndex < 3) {
-                continue; // Pula as 3 primeiras linhas de cabeçalho
+                continue; // Pula cabeçalhos
             }
 
-            // Junta todo o conteúdo da linha para procurar etiquetas sem falhas
             $fullRowText = strtolower(implode(' ', $row));
 
             // Deteta a linha de Ajustes
@@ -96,7 +95,7 @@ class GoogleSheetsReader
                 continue;
             }
 
-            // Deteta a linha "Noites de campo:" (totais finais em verde)
+            // Deteta a linha "Noites de campo:" (totais finais)
             if (str_contains($fullRowText, 'noites de campo')) {
                 $noitesCampoRowIndex = $rowIndex;
                 continue;
@@ -107,52 +106,87 @@ class GoogleSheetsReader
                 continue;
             }
 
-            // Mapeamento normal de atividades
-            $dataVal = $row[0] ?? '';
-            $nomeVal = $row[1] ?? '';
-            $localVal = $row[2] ?? '';
-            $noitesVal = (float) str_replace(',', '.', $row[3] ?? 0);
-            $acantVal = $isChecked($row[4] ?? null);
+            // Detetar posição exata das colunas para esta linha (evita desfasamento de colunas)
+            $col0 = trim((string)($row[0] ?? ''));
+            $col1 = trim((string)($row[1] ?? ''));
+            $col2 = trim((string)($row[2] ?? ''));
 
-            // Ajuste caso a data esteja deslocada para a coluna B
-            if (empty($nomeVal) && !empty($row[2])) {
-                $dataVal = $row[1] ?? '';
-                $nomeVal = $row[2] ?? '';
+            $col0IsDate = preg_match('/\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}/', $col0);
+            $col1IsDate = preg_match('/\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}/', $col1);
+
+            if ($col0IsDate) {
+                // Data na Coluna A (idx 0)
+                $dataVal = $col0;
+                $nomeVal = $col1;
+                $localVal = $col2;
+                $noitesRaw = $row[3] ?? '0';
+                $acantRaw = $row[4] ?? null;
+            } elseif ($col1IsDate) {
+                // Data na Coluna B (idx 1)
+                $dataVal = $col1;
+                $nomeVal = $col2;
                 $localVal = $row[3] ?? '';
-                $noitesVal = (float) str_replace(',', '.', $row[4] ?? 0);
-                $acantVal = $isChecked($row[5] ?? null);
-            }
-
-            if (!empty($nomeVal)) {
-                $participantesCols = [];
-                foreach ($this->personCols as $colIndex) {
-                    if (isset($row[$colIndex]) && $isChecked($row[$colIndex])) {
-                        $participantesCols[] = $colIndex;
-                    }
+                $noitesRaw = $row[4] ?? '0';
+                $acantRaw = $row[5] ?? null;
+            } else {
+                // Fallback inteligente
+                if (!empty($col1)) {
+                    $dataVal = $col0;
+                    $nomeVal = $col1;
+                    $localVal = $col2;
+                    $noitesRaw = $row[3] ?? '0';
+                    $acantRaw = $row[4] ?? null;
+                } elseif (!empty($col2)) {
+                    $dataVal = $col1;
+                    $nomeVal = $col2;
+                    $localVal = $row[3] ?? '';
+                    $noitesRaw = $row[4] ?? '0';
+                    $acantRaw = $row[5] ?? null;
+                } else {
+                    continue; // Linha vazia ou não identificada
                 }
-
-                $activities[] = [
-                    'row' => $rowIndex + 1,
-                    'data' => $dataVal,
-                    'nome' => $nomeVal,
-                    'local' => $localVal,
-                    'noites' => $noitesVal,
-                    'acantonamento' => $acantVal,
-                    'participantes_cols' => $participantesCols,
-                ];
             }
+
+            // Se não tem nome de atividade válido, ignora
+            if (empty($nomeVal)) {
+                continue;
+            }
+
+            // Converte noites para float
+            $noitesVal = (float) str_replace(',', '.', $noitesRaw);
+
+            // Acantonamento SÓ é true se tiver explicitamente sim/true/x/1/v
+            $acantStr = strtolower(trim((string)$acantRaw));
+            $acantVal = in_array($acantStr, ['true', '1', 'x', 'sim', 'vade', 'verdadeiro', 'v', '●'], true);
+
+            // Identifica participantes marcados para esta atividade
+            $participantesCols = [];
+            foreach ($this->personCols as $colIndex) {
+                if (isset($row[$colIndex]) && $isPersonChecked($row[$colIndex])) {
+                    $participantesCols[] = $colIndex;
+                }
+            }
+
+            $activities[] = [
+                'row' => $rowIndex + 1,
+                'data' => $dataVal,
+                'nome' => $nomeVal,
+                'local' => $localVal,
+                'noites' => $noitesVal,
+                'acantonamento' => $acantVal,
+                'participantes_cols' => $participantesCols,
+            ];
         }
 
         $people = [];
 
-        // 3. Calcular totais de cada pessoa
+        // 2. Calcular totais de cada pessoa
         foreach ($this->personCols as $colIndex) {
             $personName = trim($rows[2][$colIndex] ?? '');
             if (empty($personName)) {
                 continue;
             }
 
-            // Soma das checkboxes para esta pessoa
             $totalNoitesCheckboxes = 0;
             $totalAtividadesCount = 0;
 
@@ -166,7 +200,7 @@ class GoogleSheetsReader
                 }
             }
 
-            // Obter o valor do Ajuste
+            // Obter o valor do Ajuste das secções anteriores
             $ajuste = 0;
             if ($adjustmentRowIndex !== null && isset($rows[$adjustmentRowIndex][$colIndex])) {
                 $rawVal = str_replace(',', '.', trim((string) $rows[$adjustmentRowIndex][$colIndex]));
@@ -177,7 +211,7 @@ class GoogleSheetsReader
 
             $totalNights = $totalNoitesCheckboxes + $ajuste;
 
-            // Salvaguarda: Se a linha "Ajustes" não deu valor, mas a linha verde "Noites de campo:" contiver o total final
+            // Salvaguarda: Se a linha Ajustes não deu valor, mas existe o total na linha "Noites de campo:"
             if ($ajuste === 0.0 && $noitesCampoRowIndex !== null && isset($rows[$noitesCampoRowIndex][$colIndex])) {
                 $rawTotal = str_replace(',', '.', trim((string) $rows[$noitesCampoRowIndex][$colIndex]));
                 if (is_numeric($rawTotal) && (float)$rawTotal > 0) {
@@ -190,7 +224,7 @@ class GoogleSheetsReader
                 'col' => $colIndex,
                 'name' => $personName,
                 'past_nights' => $ajuste,
-                'total_nights' => $totalNights, // Ex: 51 + 50 = 101 | 12 + 121 = 133
+                'total_nights' => $totalNights,
                 'total_activities' => $totalAtividadesCount,
             ];
         }
