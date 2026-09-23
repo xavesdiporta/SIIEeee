@@ -17,13 +17,19 @@
             <div class="flex md:hidden bg-[#FAF7F5] border border-[#E4D5C3] p-1 rounded-xl">
                 <button type="button" @click="mobileTab = 'matriz'"
                         :class="mobileTab === 'matriz' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
-                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors text-center">
-                    ⛺ Atividades
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M3 21l9-18 9 18M9 21v-4a2 2 0 012-2h2a2 2 0 012 2v4" />
+                    </svg>
+                    <span>Atividades</span>
                 </button>
                 <button type="button" @click="mobileTab = 'ranking'"
                         :class="mobileTab === 'ranking' ? 'bg-[#3E2D1B] text-white shadow-xs' : 'text-[#776246]'"
-                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors text-center">
-                    🏆 Ranking
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4a5 5 0 005 5h4a5 5 0 005-5V3M5 3h14M5 3H3v2a3 3 0 003 3h2M19 3h2v2a3 3 0 01-3 3h-2m-8 7v3m-3 3h10" />
+                    </svg>
+                    <span>Ranking</span>
                 </button>
             </div>
         </div>
