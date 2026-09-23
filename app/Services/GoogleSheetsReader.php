@@ -15,7 +15,6 @@ class GoogleSheetsReader
 
     public function __construct()
     {
-        $client = new Client();
         $credentialsPath = config('services.google_drive.credentials');
 
         $fullPath = str_starts_with($credentialsPath, '/')
@@ -58,8 +57,7 @@ class GoogleSheetsReader
      */
     public function readNoitesCampo(string $spreadsheetId): array
     {
-        // $this->service já existe e está inicializado
-        $response = $this->service->spreadsheets_values->get($spreadsheetId, 'A1:ZZ100');
+        $response = $this->sheets->spreadsheets_values->get($spreadsheetId, 'A1:ZZ100');
         $rows = $response->getValues() ?? [];
 
         if (empty($rows)) {
@@ -69,7 +67,7 @@ class GoogleSheetsReader
         $activities = [];
         $adjustmentRowIndex = null;
 
-        // 1. Mapeia as atividades e localiza a linha de Ajustes
+        // 1. Mapeia as atividades e localiza a linha de Ajustes/Secções Anteriores
         foreach ($rows as $rowIndex => $row) {
             $nomeLinha = strtolower(trim($row[1] ?? ''));
 
@@ -96,9 +94,14 @@ class GoogleSheetsReader
             }
         }
 
+        // Se não encontrou a linha de ajuste pelo nome, usa por omissão a linha 4 (index 3)
+        if ($adjustmentRowIndex === null && isset($rows[3])) {
+            $adjustmentRowIndex = 3;
+        }
+
         $people = [];
 
-        // 2. Calcula os totais com o Ajuste / Secções Anteriores
+        // 2. Calcula os totais somando as atividades + Ajuste (Secções Anteriores)
         foreach ($this->personCols as $colIndex) {
             $personName = $rows[2][$colIndex] ?? '';
             if (empty($personName)) {
@@ -134,7 +137,7 @@ class GoogleSheetsReader
                 'col' => $colIndex,
                 'name' => $personName,
                 'past_nights' => $ajuste,
-                'total_nights' => $totalNoitesAtividades + $ajuste, // Soma atividades + ajuste anterior
+                'total_nights' => $totalNoitesAtividades + $ajuste, // <--- Aqui inclui os 101 das secções passadas!
                 'total_activities' => $totalAtividadesCount,
                 'participantes_cols' => $participantesCols,
             ];
@@ -148,30 +151,17 @@ class GoogleSheetsReader
 
     public function updateCell(string $spreadsheetId, int $row, int $col, bool $value): void
     {
-        // Converte o número da coluna para a letra correspondente do Sheets (ex: 12 -> L)
-        $colLetter = $this->getColLetter($col);
-        $range = "'Folha1'!{$colLetter}{$row}"; // Ajusta o nome da aba se necessário
+        $colLetter = $this->columnLetter($col);
+        $range = "{$colLetter}{$row}";
 
-        $body = new \Google\Service\Sheets\ValueRange([
+        $body = new ValueRange([
             'values' => [[$value ? 'TRUE' : 'FALSE']],
         ]);
 
-        $this->service->spreadsheets_values->update($spreadsheetId, $range, $body, [
+        $this->sheets->spreadsheets_values->update($spreadsheetId, $range, $body, [
             'valueInputOption' => 'USER_ENTERED',
         ]);
     }
-
-    private function getColLetter(int $colIndex): string
-    {
-        $letter = '';
-        while ($colIndex > 0) {
-            $module = ($colIndex - 1) % 26;
-            $letter = chr(65 + $module) . $letter;
-            $colIndex = (int)(($colIndex - $module) / 26);
-        }
-        return $letter;
-    }
-
 
     public function readHorasMar(string $spreadsheetId): array
     {
@@ -186,8 +176,6 @@ class GoogleSheetsReader
         $headerRow = $formatted[1] ?? []; // linha 2: nomes das atividades
         $horasRow = $formatted[2] ?? [];  // linha 3: horas de cada atividade
 
-        // Deteta as colunas de atividades dinamicamente a partir da coluna E,
-        // até encontrar uma célula vazia ou a coluna "Total:".
         $activities = [];
         for ($col = 4; $col < count($headerRow); $col++) {
             $label = trim($headerRow[$col] ?? '');
@@ -247,11 +235,6 @@ class GoogleSheetsReader
         ];
     }
 
-    /**
-     * Insere uma nova atividade (COLUNA, não linha) logo a seguir à última
-     * atividade real. $afterCol é a coluna (0-indexada) da última atividade —
-     * vem de readHorasMar().
-     */
     public function appendAtividadeHorasMar(string $spreadsheetId, string $nome, float $horas, int $afterCol): void
     {
         $sheetId = $this->firstSheetId($spreadsheetId);
@@ -281,17 +264,6 @@ class GoogleSheetsReader
         );
     }
 
-    /**
-     * Insere uma nova atividade logo a seguir à última atividade real
-     * (não no fim absoluto da folha, que pode ter linhas de resumo/notas
-     * depois da tabela). $afterRow é o número da última linha de atividade
-     * real (1-indexado) — vem de readNoitesCampo().
-     *
-     * Insere a linha em branco com inheritFromBefore=true, o que copia a
-     * formatação da linha anterior — incluindo as checkboxes das pessoas,
-     * que assim já aparecem corretamente no Sheets, sem precisares de as
-     * estender à mão.
-     */
     public function appendActivity(string $spreadsheetId, string $dia, string $nome, string $local, int $noites, int $afterRow): void
     {
         $sheetId = $this->firstSheetId($spreadsheetId);
@@ -302,7 +274,7 @@ class GoogleSheetsReader
                     'range' => [
                         'sheetId' => $sheetId,
                         'dimension' => 'ROWS',
-                        'startIndex' => $afterRow,     // 0-indexado; equivale à linha $afterRow+1 (1-indexado)
+                        'startIndex' => $afterRow,
                         'endIndex' => $afterRow + 1,
                     ],
                     'inheritFromBefore' => true,
