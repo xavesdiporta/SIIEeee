@@ -64,9 +64,8 @@ class GoogleSheetsReader
 
         $activities = [];
         $adjustmentRowIndex = null;
-        $totalRowIndex = null;
+        $noitesCampoRowIndex = null;
 
-        // Função utilitária para verificar se a célula tem checkbox ativa
         $isChecked = function ($val): bool {
             if (is_bool($val)) return $val;
             if (is_numeric($val)) return (float)$val > 0;
@@ -77,41 +76,45 @@ class GoogleSheetsReader
             return false;
         };
 
-        // 2. Analisar as linhas para separar Atividades, Ajustes e Totais
+        // 2. Analisar as linhas da folha
         foreach ($rows as $rowIndex => $row) {
             if ($rowIndex < 3) {
                 continue; // Pula as 3 primeiras linhas de cabeçalho
             }
 
-            $rowText = strtolower(trim(implode(' ', array_slice($row, 0, 5))));
+            // Junta todo o conteúdo da linha para procurar etiquetas sem falhas
+            $fullRowText = strtolower(implode(' ', $row));
 
-            // Deteta a linha de Ajuste / Secções Anteriores
+            // Deteta a linha de Ajustes
             if (
-                str_contains($rowText, 'ajuste') ||
-                str_contains($rowText, 'secções') ||
-                str_contains($rowText, 'seccoes') ||
-                str_contains($rowText, 'anteriores') ||
-                str_contains($rowText, 'transito') ||
-                str_contains($rowText, 'trânsito') ||
-                str_contains($rowText, 'outras')
+                str_contains($fullRowText, 'ajuste') ||
+                str_contains($fullRowText, 'anteriores') ||
+                str_contains($fullRowText, 'transito') ||
+                str_contains($fullRowText, 'trânsito')
             ) {
                 $adjustmentRowIndex = $rowIndex;
                 continue;
             }
 
-            // Deteta a linha de Total
-            if (str_contains($rowText, 'total')) {
-                $totalRowIndex = $rowIndex;
+            // Deteta a linha "Noites de campo:" (totais finais em verde)
+            if (str_contains($fullRowText, 'noites de campo')) {
+                $noitesCampoRowIndex = $rowIndex;
                 continue;
             }
 
-            // Estrutura normal: Data (A/B), Nome (B/C), Local (C/D), Noites (D/E), Acant (E/F)
+            // Ignora linhas de subtotal
+            if (str_contains($fullRowText, 'total c/') || str_contains($fullRowText, 'total lobitos') || str_contains($fullRowText, 'total exploradores')) {
+                continue;
+            }
+
+            // Mapeamento normal de atividades
             $dataVal = $row[0] ?? '';
             $nomeVal = $row[1] ?? '';
             $localVal = $row[2] ?? '';
             $noitesVal = (float) str_replace(',', '.', $row[3] ?? 0);
             $acantVal = $isChecked($row[4] ?? null);
 
+            // Ajuste caso a data esteja deslocada para a coluna B
             if (empty($nomeVal) && !empty($row[2])) {
                 $dataVal = $row[1] ?? '';
                 $nomeVal = $row[2] ?? '';
@@ -120,7 +123,6 @@ class GoogleSheetsReader
                 $acantVal = $isChecked($row[5] ?? null);
             }
 
-            // Se for uma atividade válida com nome
             if (!empty($nomeVal)) {
                 $participantesCols = [];
                 foreach ($this->personCols as $colIndex) {
@@ -130,7 +132,7 @@ class GoogleSheetsReader
                 }
 
                 $activities[] = [
-                    'row' => $rowIndex + 1, // Número real da linha no Sheets (1-based)
+                    'row' => $rowIndex + 1,
                     'data' => $dataVal,
                     'nome' => $nomeVal,
                     'local' => $localVal,
@@ -141,24 +143,30 @@ class GoogleSheetsReader
             }
         }
 
-        // Se a linha de ajuste não foi encontrada por nome, calcula com base na linha do Total (LIN()-2)
-        if ($adjustmentRowIndex === null && $totalRowIndex !== null && $totalRowIndex > 3) {
-            $adjustmentRowIndex = $totalRowIndex - 2;
-            if ($adjustmentRowIndex < 3 || !isset($rows[$adjustmentRowIndex])) {
-                $adjustmentRowIndex = $totalRowIndex - 1;
-            }
-        }
-
         $people = [];
 
-        // 3. Calcular totais de cada pessoa (Noites Atividades + Ajuste Anterior)
+        // 3. Calcular totais de cada pessoa
         foreach ($this->personCols as $colIndex) {
             $personName = trim($rows[2][$colIndex] ?? '');
             if (empty($personName)) {
                 continue;
             }
 
-            // Lê o valor do Ajuste de secções passadas para esta pessoa
+            // Soma das checkboxes para esta pessoa
+            $totalNoitesCheckboxes = 0;
+            $totalAtividadesCount = 0;
+
+            foreach ($activities as $act) {
+                if (in_array($colIndex, $act['participantes_cols'], true)) {
+                    $totalAtividadesCount++;
+
+                    if (!$act['acantonamento']) {
+                        $totalNoitesCheckboxes += $act['noites'];
+                    }
+                }
+            }
+
+            // Obter o valor do Ajuste
             $ajuste = 0;
             if ($adjustmentRowIndex !== null && isset($rows[$adjustmentRowIndex][$colIndex])) {
                 $rawVal = str_replace(',', '.', trim((string) $rows[$adjustmentRowIndex][$colIndex]));
@@ -167,16 +175,14 @@ class GoogleSheetsReader
                 }
             }
 
-            $totalNoitesAtividades = 0;
-            $totalAtividadesCount = 0;
+            $totalNights = $totalNoitesCheckboxes + $ajuste;
 
-            foreach ($activities as $act) {
-                if (in_array($colIndex, $act['participantes_cols'], true)) {
-                    $totalAtividadesCount++;
-
-                    if (!$act['acantonamento']) {
-                        $totalNoitesAtividades += $act['noites'];
-                    }
+            // Salvaguarda: Se a linha "Ajustes" não deu valor, mas a linha verde "Noites de campo:" contiver o total final
+            if ($ajuste === 0.0 && $noitesCampoRowIndex !== null && isset($rows[$noitesCampoRowIndex][$colIndex])) {
+                $rawTotal = str_replace(',', '.', trim((string) $rows[$noitesCampoRowIndex][$colIndex]));
+                if (is_numeric($rawTotal) && (float)$rawTotal > 0) {
+                    $totalNights = (float) $rawTotal;
+                    $ajuste = max(0, $totalNights - $totalNoitesCheckboxes);
                 }
             }
 
@@ -184,7 +190,7 @@ class GoogleSheetsReader
                 'col' => $colIndex,
                 'name' => $personName,
                 'past_nights' => $ajuste,
-                'total_nights' => $totalNoitesAtividades + $ajuste, // <--- Atividades + Ajuste das Secções Anteriores
+                'total_nights' => $totalNights, // Ex: 51 + 50 = 101 | 12 + 121 = 133
                 'total_activities' => $totalAtividadesCount,
             ];
         }
