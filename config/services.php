@@ -71,6 +71,7 @@ return [
         'files' => [
             'noites_campo' => env('DRIVE_FILE_NOITES_CAMPO'),
             'horas_mar' => env('DRIVE_FILE_HORAS_MAR'),
+            'atas_exploradores' => env('DRIVE_FOLDER_ATAS_EXPLORADORES'),
         ],
     ],
 
