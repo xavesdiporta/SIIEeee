@@ -2,53 +2,68 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Ata;
 use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse;
+use Google\Client;
+use Google\Service\Drive;
+use Google\Service\Drive\DriveFile;
+use App\Models\Ata; // Garante que tens o model Ata criado
 
 class AtaController extends Controller
 {
-    /**
-     * Guarda uma nova ata: move o ficheiro para public/atas e cria o registo.
-     */
-    public function store(Request $request): RedirectResponse
+    public function index()
+    {
+        $atas = Ata::where('seccao', 'exploradores')->latest('data_ata')->get();
+        return view('pages.expedicao.atas', compact('atas'));
+    }
+
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'nome' => ['required', 'string', 'max:255'],
-            'dia' => ['required', 'date'],
-            'ficheiro' => ['required', 'file', 'mimes:pdf', 'max:10240'], // até 10MB
+            'data_ata' => ['required', 'date'],
+            'descricao' => ['nullable', 'string', 'max:1000'],
+            'ficheiro' => ['required', 'file', 'mimes:pdf,doc,docx,png,jpg', 'max:10240'], // máx 10MB
         ]);
 
-        $file = $request->file('ficheiro');
-        $filename = now()->format('Y-m-d') . '-' . str($validated['nome'])->slug() . '.' . $file->getClientOriginalExtension();
+        $folderId = config('services.google_drive.folders.atas_exploradores'); // ID da pasta do Drive no .env
 
-        // Guarda diretamente em public/atas (acessível via asset('atas/...'))
-        $file->move(public_path('atas'), $filename);
+        // Upload para o Google Drive
+        $credentialsPath = config('services.google_drive.credentials');
+        $fullPath = str_starts_with($credentialsPath, '/')
+            ? $credentialsPath
+            : base_path($credentialsPath);
 
+        $client = new Client();
+        $client->setAuthConfig($fullPath);
+        $client->addScope(Drive::DRIVE_FILE);
+
+        $driveService = new Drive($client);
+
+        $fileUploaded = $request->file('ficheiro');
+        $fileMetadata = new DriveFile([
+            'name' => $validated['data_ata'] . ' - ' . $validated['nome'] . '.' . $fileUploaded->getClientOriginalExtension(),
+            'parents' => $folderId ? [$folderId] : [],
+        ]);
+
+        $content = file_get_contents($fileUploaded->getRealPath());
+
+        $driveFile = $driveService->files->create($fileMetadata, [
+            'data' => $content,
+            'mimeType' => $fileUploaded->getClientMimeType(),
+            'uploadType' => 'multipart',
+            'fields' => 'id, webViewLink, webContentLink',
+        ]);
+
+        // Guarda na base de dados
         Ata::create([
+            'seccao' => 'exploradores',
             'nome' => $validated['nome'],
-            'dia' => $validated['dia'],
-            'ficheiro' => 'atas/' . $filename,
-            'user_id' => $request->user()->id,
+            'data_ata' => $validated['data_ata'],
+            'descricao' => $validated['descricao'] ?? '',
+            'drive_file_id' => $driveFile->id,
+            'drive_link' => $driveFile->webViewLink,
         ]);
 
-        return redirect()
-            ->route('dashboard')
-            ->with('status', 'Ata adicionada com sucesso.');
-    }
-
-    /**
-     * Devolve as atas no formato que o FullCalendar espera (GET /api/events).
-     * Cada ata vira um evento no dia em que a reunião aconteceu.
-     */
-    public function events()
-    {
-        return Ata::orderBy('dia')->get()->map(fn (Ata $ata) => [
-            'id' => $ata->id,
-            'title' => $ata->nome,
-            'start' => $ata->dia->toDateString(),
-            'allDay' => true,
-            'url' => asset($ata->ficheiro),
-        ]);
+        return back()->with('status', 'Ata guardada e enviada para o Google Drive com sucesso!');
     }
 }

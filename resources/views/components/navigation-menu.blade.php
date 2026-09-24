@@ -91,10 +91,17 @@
                 </div>
 
                 <!-- Links de Navegação -->
+                <!-- Links de Navegação -->
                 <div class="p-4 space-y-2">
                     <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" class="block w-full">
                         {{ __('A minha Área') }}
                     </x-nav-link>
+
+                    @if($seccao === 'exploradores' || (Auth::user()->is_admin ?? false))
+                        <x-nav-link href="{{ route('expedicao.atas') }}" :active="request()->routeIs('expedicao.atas*')" class="block w-full">
+                            {{ __('Atas da Expedição') }}
+                        </x-nav-link>
+                    @endif
 
                     @if($seccao === 'cla' || (Auth::user()->is_admin ?? false))
                         <x-nav-link href="{{ route('allcalendar')}}" :active="request()->routeIs('allcalendar')" class="block w-full">

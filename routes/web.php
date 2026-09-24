@@ -71,6 +71,9 @@ Route::middleware([
         Route::post('/exploradores/gestao/user', [ExploradorgestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
         Route::post('/exploradores/gestao/toggle', [ExploradorgestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
         Route::post('/exploradores/gestao/toggle-bulk', [ExploradorGestaoController::class, 'toggleObjetivoBulk'])->name('exploradores-gestao.toggle-bulk');
+
+        Route::get('/atas', [AtaController::class, 'index'])->name('atas');
+        Route::post('/atas', [AtaController::class, 'store'])->name('atas.store');
     });
 
     // 3ª Secção: Comunidade (Pioneiros)
