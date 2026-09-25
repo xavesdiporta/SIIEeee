@@ -97,13 +97,13 @@
                         {{ __('A minha Área') }}
                     </x-nav-link>
 
-                    @if($seccao === 'exploradores' || (Auth::user()->is_admin ?? false))
+                    @if($seccao === 'exploradores' || (Auth::user()->getChefeAttribute() ?? false))
                         <x-nav-link href="{{ route('expedicao.atas') }}" :active="request()->routeIs('expedicao.atas*')" class="block w-full">
                             {{ __('Atas da Expedição') }}
                         </x-nav-link>
                     @endif
 
-                    @if($seccao === 'cla' || (Auth::user()->is_admin ?? false))
+                    @if($seccao === 'cla')
                         <x-nav-link href="{{ route('allcalendar')}}" :active="request()->routeIs('allcalendar')" class="block w-full">
                             {{ __('O meu Progresso') }}
                         </x-nav-link>
