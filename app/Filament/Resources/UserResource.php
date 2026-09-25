@@ -55,7 +55,7 @@ class UserResource extends Resource
                     ->columns(2),
 
                 Forms\Components\Section::make('Secção & Permissões')
-                    ->description('Define a secção do escuteiro e permissões de administrador.')
+                    ->description('Define a secção do escuteiro e permissões de administrador/chefia.')
                     ->schema([
                         Forms\Components\Select::make('seccao')
                             ->label('Secção')
@@ -68,11 +68,16 @@ class UserResource extends Resource
                             ->default('cla')
                             ->required()
                             ->native(false),
+                        Forms\Components\Toggle::make('chefe')
+                            ->label('É Dirigente / Chefe')
+                            ->helperText('Chefes não aparecem na tabela de progresso dos membros da secção.')
+                            ->default(false),
                         Forms\Components\Toggle::make('is_admin')
                             ->label('Administrador')
-                            ->helperText('Admins têm acesso a todas as secções.'),
+                            ->helperText('Admins têm acesso a todas as secções.')
+                            ->default(false),
                     ])
-                    ->columns(2),
+                    ->columns(3),
             ]);
     }
 
@@ -105,7 +110,8 @@ class UserResource extends Resource
                         'cla'          => 'danger',
                         default        => 'gray',
                     }),
-                Tables\Columns\IconColumn::make('trial_is_used')
+                Tables\Columns\IconColumn::make('chefe')
+                    ->label('Dirigente')
                     ->sortable()
                     ->boolean(),
                 Tables\Columns\IconColumn::make('is_admin')
@@ -116,9 +122,6 @@ class UserResource extends Resource
                     ->label('Criado em')
                     ->sortable()
                     ->date('d/m/Y'),
-                Tables\Columns\TextColumn::make('stripe_id')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('seccao')
@@ -130,6 +133,11 @@ class UserResource extends Resource
                         'cla'          => 'Clã (Caminheiros)',
                     ])
                     ->placeholder('Todas as secções'),
+                Tables\Filters\TernaryFilter::make('chefe')
+                    ->label('Dirigente / Chefe')
+                    ->placeholder('Todos')
+                    ->trueLabel('Apenas Dirigentes')
+                    ->falseLabel('Apenas Membros (Não-Chefes)'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

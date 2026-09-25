@@ -44,7 +44,11 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'cargo',
         'cne_number',
+        'cp_card_number',
         'seccao',
+        'chefe',
+        'chefes',
+        'is_admin',
     ];
 
     /**
@@ -78,7 +82,62 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'chefe' => 'boolean',
+            'chefes' => 'boolean',
+            'is_admin' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            // Sincroniza 'chefe' e 'chefes' caso a coluna na base de dados use uma ou outra convenção
+            try {
+                if (isset($user->attributes['chefe']) && !isset($user->attributes['chefes'])) {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefes') && !\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefe')) {
+                        $user->attributes['chefes'] = (bool) $user->attributes['chefe'];
+                        unset($user->attributes['chefe']);
+                    }
+                } elseif (isset($user->attributes['chefes']) && !isset($user->attributes['chefe'])) {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefe') && !\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefes')) {
+                        $user->attributes['chefe'] = (bool) $user->attributes['chefes'];
+                        unset($user->attributes['chefes']);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Em caso de impossibilidade de aceder ao schema, não bloqueia o save
+            }
+        });
+    }
+
+    public function getChefeAttribute(): bool
+    {
+        return (bool) ($this->attributes['chefe'] ?? $this->attributes['chefes'] ?? false);
+    }
+
+    /**
+     * Scope para obter apenas membros (exclui chefes/dirigentes das tabelas das secções).
+     */
+    public function scopeMembros($query)
+    {
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefe')) {
+                return $query->where(function ($q) {
+                    $q->where('chefe', false)->orWhereNull('chefe');
+                });
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefes')) {
+                return $query->where(function ($q) {
+                    $q->where('chefes', false)->orWhereNull('chefes');
+                });
+            }
+        } catch (\Throwable $e) {
+            return $query->where(function ($q) {
+                $q->where('chefe', false)->orWhereNull('chefe');
+            });
+        }
+
+        return $query;
     }
 
     // Relations

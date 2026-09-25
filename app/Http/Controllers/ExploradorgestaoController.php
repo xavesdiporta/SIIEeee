@@ -42,7 +42,7 @@ class ExploradorGestaoController extends Controller
         $categorias = $this->categorias();
         $totalRefsAll = collect($categorias)->sum(fn ($c) => count($c['refs'] ?? []));
 
-        $exploradores = User::where('seccao', 'exploradores')->orderBy('name')->get() ?? collect();
+        $exploradores = User::membros()->where('seccao', 'exploradores')->orderBy('name')->get() ?? collect();
 
         $matriz = ProgressNote::whereIn('user_id', $exploradores->pluck('id'))
             ->where('status', 'approved')

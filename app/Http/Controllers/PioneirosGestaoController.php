@@ -42,7 +42,7 @@ class PioneirosGestaoController extends Controller
         $categorias = $this->categorias();
         $totalRefsAll = collect($categorias)->sum(fn ($c) => count($c['refs'] ?? []));
 
-        $pioneiros = User::where('seccao', 'pioneiros')->orderBy('name')->get() ?? collect();
+        $pioneiros = User::membros()->where('seccao', 'pioneiros')->orderBy('name')->get() ?? collect();
 
         $matriz = ProgressNote::whereIn('user_id', $pioneiros->pluck('id'))
             ->where('status', 'approved')

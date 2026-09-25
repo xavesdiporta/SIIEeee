@@ -42,7 +42,7 @@ class LobitosGestaoController extends Controller
         $categorias = $this->categorias();
         $totalRefsAll = collect($categorias)->sum(fn ($c) => count($c['refs'] ?? []));
 
-        $lobitos = User::where('seccao', 'lobitos')->orderBy('name')->get() ?? collect();
+        $lobitos = User::membros()->where('seccao', 'lobitos')->orderBy('name')->get() ?? collect();
 
         $matriz = ProgressNote::whereIn('user_id', $lobitos->pluck('id'))
             ->where('status', 'approved')
