@@ -11,14 +11,13 @@ class DashboardController extends Controller
 {
     public function index(Request $request, GoogleCalendarService $calendar)
     {
-        $data = $this->calendarData($request, $calendar);
         $seccao = Auth::user()?->seccao ?? 'cla';
 
         return match ($seccao) {
-            'lobitos'      => view('pages.dashboards.lobitos', $data),
-            'exploradores' => view('pages.dashboards.exploradores', $data),
-            'pioneiros'    => view('pages.dashboards.pioneiros', $data),
-            default        => view('pages.dashboard', $data),
+            'lobitos'      => redirect()->route('alcateia.dashboard'),
+            'exploradores' => redirect()->route('expedicao.dashboard'),
+            'pioneiros'    => redirect()->route('comunidade.dashboard'),
+            default        => redirect()->route('cla.dashboard'),
         };
     }
 

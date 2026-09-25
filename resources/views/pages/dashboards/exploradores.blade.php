@@ -1,6 +1,10 @@
 <x-app-layout>
     <div class="max-w-[100rem] mx-auto py-4 sm:py-8 px-3 sm:px-8 lg:px-10">
 
+        @php
+            $exploradores = collect($exploradores ?? [])->filter(fn ($u) => !($u->chefe ?? false))->values();
+        @endphp
+
         {{-- CABEÇALHO --}}
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div>
@@ -9,7 +13,7 @@
                     Gestão · Expedição
                 </div>
                 <h1 class="text-xl font-bold text-[#14532D]">Progresso dos Exploradores</h1>
-                <p class="text-xs sm:text-sm text-[#166534] mt-0.5">{{ count($exploradores ?? []) }} exploradores registados</p>
+                <p class="text-xs sm:text-sm text-[#166534] mt-0.5">{{ count($exploradores) }} exploradores registados</p>
             </div>
         </div>
 

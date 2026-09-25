@@ -1,6 +1,10 @@
 <x-app-layout>
     <div class="max-w-[100rem] mx-auto py-4 sm:py-8 px-3 sm:px-8 lg:px-10">
 
+        @php
+            $lobitos = collect($lobitos ?? [])->filter(fn ($u) => !($u->chefe ?? false))->values();
+        @endphp
+
         {{-- CABEÇALHO --}}
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div>
@@ -9,7 +13,7 @@
                     Gestão · Alcateia
                 </div>
                 <h1 class="text-xl font-bold text-[#78350F]">Progresso dos Lobitos</h1>
-                <p class="text-xs sm:text-sm text-[#92400E] mt-0.5">{{ count($lobitos ?? []) }} lobitos registados</p>
+                <p class="text-xs sm:text-sm text-[#92400E] mt-0.5">{{ count($lobitos) }} lobitos registados</p>
             </div>
         </div>
 

@@ -68,7 +68,7 @@ class UserResource extends Resource
                             ->default('cla')
                             ->required()
                             ->native(false),
-                        Forms\Components\Toggle::make('chefe')
+                        Forms\Components\Toggle::make('chefes')
                             ->label('É Dirigente / Chefe')
                             ->helperText('Chefes não aparecem na tabela de progresso dos membros da secção.')
                             ->default(false),
@@ -110,7 +110,7 @@ class UserResource extends Resource
                         'cla'          => 'danger',
                         default        => 'gray',
                     }),
-                Tables\Columns\IconColumn::make('chefe')
+                Tables\Columns\IconColumn::make('chefes')
                     ->label('Dirigente')
                     ->sortable()
                     ->boolean(),
@@ -133,7 +133,7 @@ class UserResource extends Resource
                         'cla'          => 'Clã (Caminheiros)',
                     ])
                     ->placeholder('Todas as secções'),
-                Tables\Filters\TernaryFilter::make('chefe')
+                Tables\Filters\TernaryFilter::make('chefes')
                     ->label('Dirigente / Chefe')
                     ->placeholder('Todos')
                     ->trueLabel('Apenas Dirigentes')

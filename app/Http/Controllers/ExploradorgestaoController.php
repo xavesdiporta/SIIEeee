@@ -77,6 +77,7 @@ class ExploradorGestaoController extends Controller
             'name' => $validated['nome'],
             'email' => $email,
             'seccao' => 'exploradores',
+            'chefes' => false,
             'password' => Hash::make(Str::random(32)),
         ]);
 

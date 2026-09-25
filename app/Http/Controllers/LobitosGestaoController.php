@@ -77,6 +77,7 @@ class LobitosGestaoController extends Controller
             'name' => $validated['nome'],
             'email' => $email,
             'seccao' => 'lobitos',
+            'chefes' => false,
             'password' => Hash::make(Str::random(32)),
         ]);
 

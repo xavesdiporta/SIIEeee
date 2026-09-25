@@ -91,28 +91,22 @@ class User extends Authenticatable implements FilamentUser
     protected static function booted(): void
     {
         static::saving(function (User $user) {
-            // Sincroniza 'chefe' e 'chefes' caso a coluna na base de dados use uma ou outra convenção
-            try {
-                if (isset($user->attributes['chefe']) && !isset($user->attributes['chefes'])) {
-                    if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefes') && !\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefe')) {
-                        $user->attributes['chefes'] = (bool) $user->attributes['chefe'];
-                        unset($user->attributes['chefe']);
-                    }
-                } elseif (isset($user->attributes['chefes']) && !isset($user->attributes['chefe'])) {
-                    if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefe') && !\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefes')) {
-                        $user->attributes['chefe'] = (bool) $user->attributes['chefes'];
-                        unset($user->attributes['chefes']);
-                    }
-                }
-            } catch (\Throwable $e) {
-                // Em caso de impossibilidade de aceder ao schema, não bloqueia o save
+            // Se o atributo 'chefe' foi preenchido em qualquer local, transfere para a coluna 'chefes' e remove 'chefe'
+            if (array_key_exists('chefe', $user->attributes)) {
+                $user->attributes['chefes'] = (bool) $user->attributes['chefe'];
+                unset($user->attributes['chefe']);
             }
         });
     }
 
     public function getChefeAttribute(): bool
     {
-        return (bool) ($this->attributes['chefe'] ?? $this->attributes['chefes'] ?? false);
+        return (bool) ($this->attributes['chefes'] ?? false);
+    }
+
+    public function setChefeAttribute($value): void
+    {
+        $this->attributes['chefes'] = (bool) $value;
     }
 
     /**
@@ -120,24 +114,9 @@ class User extends Authenticatable implements FilamentUser
      */
     public function scopeMembros($query)
     {
-        try {
-            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefe')) {
-                return $query->where(function ($q) {
-                    $q->where('chefe', false)->orWhereNull('chefe');
-                });
-            }
-            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'chefes')) {
-                return $query->where(function ($q) {
-                    $q->where('chefes', false)->orWhereNull('chefes');
-                });
-            }
-        } catch (\Throwable $e) {
-            return $query->where(function ($q) {
-                $q->where('chefe', false)->orWhereNull('chefe');
-            });
-        }
-
-        return $query;
+        return $query->where(function ($q) {
+            $q->where('chefes', false)->orWhereNull('chefes');
+        });
     }
 
     // Relations

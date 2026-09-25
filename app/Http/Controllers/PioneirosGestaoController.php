@@ -77,6 +77,7 @@ class PioneirosGestaoController extends Controller
             'name' => $validated['nome'],
             'email' => $email,
             'seccao' => 'pioneiros',
+            'chefes' => false,
             'password' => Hash::make(Str::random(32)),
         ]);
 
