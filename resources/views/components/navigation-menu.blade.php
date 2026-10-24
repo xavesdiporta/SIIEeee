@@ -97,7 +97,7 @@
                         {{ __('A minha Área') }}
                     </x-nav-link>
 
-                    @if($seccao === 'exploradores' ?? false))
+                    @if($seccao === 'exploradores' ?? false)
                         <x-nav-link href="{{ route('expedicao.atas') }}" :active="request()->routeIs('expedicao.atas*')" class="block w-full">
                             {{ __('Atas da Expedição') }}
                         </x-nav-link>
