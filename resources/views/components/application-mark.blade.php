@@ -1,3 +1,7 @@
+@php
+    $seccao = Auth::user()->seccao ?? 'cla';
+@endphp
+
 @if($seccao === 'lobitos')
     <img src="{{ asset('images/logo-banana.png') }}" alt="Logo" class="block h-16 w-16 rounded"/>
 @elseif($seccao === 'exploradores')
