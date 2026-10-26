@@ -63,6 +63,7 @@ Route::middleware([
         Route::post('/exploradores/gestao/user', [LobitosGestaoController::class, 'storeUser'])->name('lobitos-gestao.store-user');
         Route::post('/exploradores/gestao/toggle', [LobitosGestaoController::class, 'toggleObjetivo'])->name('lobitos-gestao.toggle');
         Route::post('/exploradores/gestao/toggle-bulk', [LobitosGestaoController::class, 'toggleObjetivoBulk'])->name('lobitos-gestao.toggle-bulk');
+        Route::post('/exploradores/gestao/set-categoria', [LobitosGestaoController::class, 'setCategoria'])->name('lobitos-gestao.set-categoria');
     });
 
     // 2ª Secção: Expedição (Exploradores)
@@ -71,6 +72,7 @@ Route::middleware([
         Route::post('/exploradores/gestao/user', [ExploradorgestaoController::class, 'storeUser'])->name('exploradores-gestao.store-user');
         Route::post('/exploradores/gestao/toggle', [ExploradorgestaoController::class, 'toggleObjetivo'])->name('exploradores-gestao.toggle');
         Route::post('/exploradores/gestao/toggle-bulk', [ExploradorGestaoController::class, 'toggleObjetivoBulk'])->name('exploradores-gestao.toggle-bulk');
+        Route::post('/exploradores/gestao/set-categoria', [ExploradorgestaoController::class, 'setCategoria'])->name('exploradores-gestao.set-categoria');
 
         Route::get('/atas', [AtaController::class, 'index'])->name('atas');
         Route::post('/atas', [AtaController::class, 'store'])->name('atas.store');
@@ -82,6 +84,7 @@ Route::middleware([
         Route::post('/pioneiros/gestao/user', [PioneirosgestaoController::class, 'storeUser'])->name('pioneiros-gestao.store-user');
         Route::post('/pioneiros/gestao/toggle', [PioneirosGestaoController::class, 'toggleObjetivo'])->name('pioneiros-gestao.toggle');
         Route::post('/pioneiros/gestao/toggle-bulk', [PioneirosGestaoController::class, 'toggleObjetivoBulk'])->name('pioneiros-gestao.toggle-bulk');
+        Route::post('/pioneiros/gestao/set-categoria', [PioneirosGestaoController::class, 'setCategoria'])->name('pioneiros-gestao.set-categoria');
     });
 
     // 4ª Secção: Clã (Caminheiros)

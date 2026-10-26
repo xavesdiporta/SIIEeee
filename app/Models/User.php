@@ -49,6 +49,7 @@ class User extends Authenticatable implements FilamentUser
         'chefe',
         'chefes',
         'is_admin',
+        'categoria_ativa',
     ];
 
     /**
@@ -85,6 +86,7 @@ class User extends Authenticatable implements FilamentUser
             'chefe' => 'boolean',
             'chefes' => 'boolean',
             'is_admin' => 'boolean',
+            'categoria_ativa' => 'integer',
         ];
     }
 
@@ -107,6 +109,11 @@ class User extends Authenticatable implements FilamentUser
     public function setChefeAttribute($value): void
     {
         $this->attributes['chefes'] = (bool) $value;
+    }
+
+    public function getCategoriaAtivaAttribute(): int
+    {
+        return (int) ($this->attributes['categoria_ativa'] ?? 1) ?: 1;
     }
 
     /**

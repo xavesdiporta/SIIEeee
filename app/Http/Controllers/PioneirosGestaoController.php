@@ -4,38 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\ProgressNote;
 use App\Models\User;
+use App\Traits\HasFaceisCategorias;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class PioneirosGestaoController extends Controller
 {
-    protected function categorias(): array
-    {
-        return [
-            ['label' => 'F', 'name' => 'Físico', 'color' => '#16a34a', 'refs' => ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']],
-            ['label' => 'A', 'name' => 'Afectivo', 'color' => '#dc2626', 'refs' => ['A1', 'A2', 'A3', 'A4', 'A5', 'A6']],
-            ['label' => 'C', 'name' => 'Carácter', 'color' => '#2563eb', 'refs' => ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']],
-            ['label' => 'E', 'name' => 'Espiritual', 'color' => '#9333ea', 'refs' => ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8']],
-            ['label' => 'I', 'name' => 'Intelectual', 'color' => '#f97316', 'refs' => ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7']],
-            ['label' => 'S', 'name' => 'Social', 'color' => '#eab308', 'refs' => ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']],
-        ];
-    }
-
-    /**
-     * Dado um reference (ex: "F3"), devolve o label da categoria a que pertence (ex: "F").
-     * Fallback: as duas primeiras letras/caracteres não numéricos do reference.
-     */
-    protected function categoriaDoRef(string $reference): string
-    {
-        foreach ($this->categorias() as $cat) {
-            if (in_array($reference, $cat['refs'], true)) {
-                return $cat['label'];
-            }
-        }
-
-        return preg_replace('/[0-9]/', '', $reference) ?: $reference;
-    }
+    use HasFaceisCategorias;
 
     public function index()
     {
@@ -50,11 +26,20 @@ class PioneirosGestaoController extends Controller
             ->groupBy('user_id')
             ->map(fn ($notas) => $notas->pluck('reference')->all());
 
+        $progressoEtapas = [];
+        foreach ($pioneiros as $pioneiro) {
+            $userRefs = $matriz[$pioneiro->id] ?? [];
+            $progressoEtapas[$pioneiro->id] = $this->calcularProgressoEtapas($userRefs);
+        }
+
         return view('pages.dashboards.pioneiros', [
             'categorias' => $categorias,
+            'subcategorias' => $this->subcategorias(),
+            'refCategorias' => $this->refParaCategoria(),
             'totalRefsAll' => $totalRefsAll,
             'pioneiros' => $pioneiros,
             'matriz' => $matriz,
+            'progressoEtapas' => $progressoEtapas,
         ]);
     }
 

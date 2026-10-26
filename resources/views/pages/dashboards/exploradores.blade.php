@@ -57,9 +57,12 @@
                         $refsDoUser = $matriz[$explorador->id] ?? [];
                         $totalUser = count($refsDoUser);
                         $initials = collect(explode(' ', trim($explorador->name)))->filter()->map(fn($w) => mb_substr($w, 0, 1))->take(2)->implode('');
+                        $pEtapas = $progressoEtapas[$explorador->id] ?? null;
+                        $etapasConcluidas = $pEtapas['etapas_concluidas'] ?? 0;
+                        $catAtiva = $explorador->categoria_ativa ?? 1;
                     @endphp
                     <div x-data="{ open: false }" class="user-card border border-[#BBF7D0] bg-[#F0FDF4] rounded-2xl p-3.5">
-                        <div @click="open = !open" class="flex items-center justify-between cursor-pointer">
+                        <div class="flex items-center justify-between cursor-pointer">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-full bg-[#14532D] text-white flex items-center justify-center text-xs font-bold shrink-0">
                                     {{ strtoupper($initials) ?: '?' }}
@@ -67,14 +70,37 @@
                                 <div>
                                     <h4 class="text-sm font-bold text-[#14532D]">{{ $explorador->name }}</h4>
                                     <p class="text-xs text-[#166534] font-medium mt-0.5">Progresso: <span class="valor-total font-bold text-[#16A34A]">{{ $totalUser }}/{{ $totalRefsAll }}</span></p>
+                                    <div class="mt-1 flex items-center gap-1.5">
+                                        @if($etapasConcluidas >= 3)
+                                            <span class="inline-flex items-center gap-1 text-amber-700 bg-amber-100 text-[10px] font-bold px-1.5 py-0.5 rounded-full">🏆 Mérito</span>
+                                        @elseif($etapasConcluidas == 2)
+                                            <span class="inline-flex items-center gap-1 text-blue-700 bg-blue-100 text-[10px] font-bold px-1.5 py-0.5 rounded-full">⭐ Etapa 2</span>
+                                        @elseif($etapasConcluidas == 1)
+                                            <span class="inline-flex items-center gap-1 text-emerald-700 bg-emerald-100 text-[10px] font-bold px-1.5 py-0.5 rounded-full">✓ Etapa 1</span>
+                                        @else
+                                            <span class="text-gray-400 text-[10px]">Etapa 1 em curso</span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <span class="text-[10px] uppercase font-bold text-[#166534]" x-text="open ? 'Fechar' : 'Etapas'"></span>
-                                <div class="w-6 h-6 rounded-full bg-white border border-[#BBF7D0] flex items-center justify-center text-[#166534] transition-transform duration-200" :class="{ 'rotate-180': open }">
-                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <div @click.stop class="shrink-0">
+                                    <select class="select-categoria text-[11px] py-1 px-2 rounded-lg font-bold border border-[#BBF7D0] bg-white text-[#14532D] focus:ring-1 focus:ring-[#16A34A] cursor-pointer"
+                                            data-user="{{ $explorador->id }}"
+                                            data-route="{{ route('expedicao.exploradores-gestao.set-categoria') }}"
+                                            title="Selecionar Categoria Ativa">
+                                        <option value="1" {{ $catAtiva == 1 ? 'selected' : '' }}>Cat. 1</option>
+                                        <option value="2" {{ $catAtiva == 2 ? 'selected' : '' }}>Cat. 2</option>
+                                        <option value="3" {{ $catAtiva == 3 ? 'selected' : '' }}>Cat. 3</option>
+                                    </select>
+                                </div>
+                                <div @click="open = !open" class="flex items-center gap-1 cursor-pointer">
+                                    <span class="text-[10px] uppercase font-bold text-[#166534]" x-text="open ? 'Fechar' : 'Etapas'"></span>
+                                    <div class="w-6 h-6 rounded-full bg-white border border-[#BBF7D0] flex items-center justify-center text-[#166534] transition-transform duration-200" :class="{ 'rotate-180': open }">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -89,16 +115,24 @@
                                     </div>
                                     <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                         @foreach($cat['refs'] as $ref)
-                                            @php $marcado = in_array($ref, $refsDoUser, true); @endphp
-                                            <label class="cel-objetivo flex items-center justify-center gap-1.5 p-2 rounded-lg border border-gray-100 bg-[#F0FDF4]/50 cursor-pointer active:scale-95 transition-all">
+                                            @php
+                                                $marcado = in_array($ref, $refsDoUser, true);
+                                                $catDoRef = $refCategorias[$ref] ?? 1;
+                                                $bloqueado = $catDoRef !== $catAtiva;
+                                            @endphp
+                                            <label class="cel-objetivo flex items-center justify-center gap-1 p-2 rounded-lg border border-gray-100 bg-[#F0FDF4]/50 transition-all {{ $bloqueado ? 'opacity-30 bg-gray-100/70 pointer-events-none' : 'cursor-pointer active:scale-95' }}"
+                                                   title="{{ $bloqueado ? 'Bloqueado: Categoria ' . $catDoRef : '' }}">
                                                 <input type="checkbox"
                                                        class="toggle-objetivo w-4 h-4 cursor-pointer rounded"
                                                        style="accent-color: {{ $cat['color'] }};"
                                                        data-user="{{ $explorador->id }}"
                                                        data-ref="{{ $ref }}"
+                                                       data-categoria="{{ $catDoRef }}"
                                                        data-original="{{ $marcado ? '1' : '0' }}"
-                                                    {{ $marcado ? 'checked' : '' }}>
+                                                    {{ $marcado ? 'checked' : '' }}
+                                                    {{ $bloqueado ? 'disabled' : '' }}>
                                                 <span class="text-xs font-bold text-[#14532D]">{{ $ref }}</span>
+                                                <span class="text-[9px] px-1 rounded bg-black/5 font-semibold text-gray-500">C{{ $catDoRef }}</span>
                                             </label>
                                         @endforeach
                                     </div>
@@ -117,6 +151,7 @@
                     <thead>
                     <tr>
                         <th rowspan="2" class="sticky top-0 left-0 z-30 bg-[#F0FDF4] border-b border-r border-[#BBF7D0] px-3 py-2 text-left text-xs font-bold text-[#166534] uppercase whitespace-nowrap min-w-[160px]">Nome</th>
+                        <th rowspan="2" class="sticky top-0 z-20 bg-[#F0FDF4] border-b border-r border-[#BBF7D0] px-2 py-2 text-center text-xs font-bold text-[#166534] uppercase whitespace-nowrap min-w-[155px]">Etapa / Cat.</th>
                         <th rowspan="2" class="sticky top-0 z-20 bg-[#F0FDF4] border-b border-r-2 border-[#BBF7D0] px-2 py-2 text-center text-xs font-bold text-[#166534] uppercase whitespace-nowrap">Total</th>
                         @foreach($categorias as $cat)
                             <th colspan="{{ count($cat['refs']) }}"
@@ -129,8 +164,10 @@
                     <tr>
                         @foreach($categorias as $cat)
                             @foreach($cat['refs'] as $ref)
-                                <th class="sticky z-10 bg-[#FAFEFB] border-b border-r border-[#E4F4E8] px-1 py-1.5 text-center text-[10px] font-semibold text-[#15803D] w-9" style="top: 33px;">
-                                    {{ $ref }}
+                                @php $catDoRef = $refCategorias[$ref] ?? 1; @endphp
+                                <th class="sticky z-10 bg-[#FAFEFB] border-b border-r border-[#E4F4E8] px-1 py-1 text-center text-[10px] font-semibold text-[#15803D] w-9" style="top: 33px;">
+                                    <div>{{ $ref }}</div>
+                                    <div class="text-[8px] font-bold text-gray-400">C{{ $catDoRef }}</div>
                                 </th>
                             @endforeach
                         @endforeach
@@ -141,32 +178,62 @@
                         @php
                             $refsDoUser = $matriz[$explorador->id] ?? [];
                             $totalUser = count($refsDoUser);
+                            $pEtapas = $progressoEtapas[$explorador->id] ?? null;
+                            $etapasConcluidas = $pEtapas['etapas_concluidas'] ?? 0;
+                            $catAtiva = $explorador->categoria_ativa ?? 1;
                         @endphp
                         <tr class="user-card hover:bg-[#F0FDF4] transition-colors">
                             <td class="sticky left-0 z-10 bg-white border-b border-r border-[#BBF7D0] px-3 py-2 text-[#14532D] font-medium whitespace-nowrap">
                                 {{ $explorador->name }}
+                            </td>
+                            <td class="border-b border-r border-[#BBF7D0] px-2 py-2 text-center whitespace-nowrap bg-white/70">
+                                <select class="select-categoria text-xs py-1 px-2 rounded-lg font-bold border border-[#BBF7D0] bg-[#F0FDF4] text-[#14532D] focus:ring-1 focus:ring-[#16A34A] cursor-pointer"
+                                        data-user="{{ $explorador->id }}"
+                                        data-route="{{ route('expedicao.exploradores-gestao.set-categoria') }}">
+                                    <option value="1" {{ $catAtiva == 1 ? 'selected' : '' }}>Etapa 1 (Cat. 1)</option>
+                                    <option value="2" {{ $catAtiva == 2 ? 'selected' : '' }}>Etapa 2 (Cat. 2)</option>
+                                    <option value="3" {{ $catAtiva == 3 ? 'selected' : '' }}>Etapa 3 (Cat. 3)</option>
+                                </select>
+                                <div class="mt-1 flex items-center justify-center gap-1 text-[10px] font-bold">
+                                    @if($etapasConcluidas >= 3)
+                                        <span class="inline-flex items-center gap-1 text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">🏆 Mérito</span>
+                                    @elseif($etapasConcluidas == 2)
+                                        <span class="inline-flex items-center gap-1 text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded-full">⭐ Etapa 2</span>
+                                    @elseif($etapasConcluidas == 1)
+                                        <span class="inline-flex items-center gap-1 text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">✓ Etapa 1</span>
+                                    @else
+                                        <span class="text-gray-400 font-normal">Etapa 1 em curso</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="border-b border-r-2 border-[#BBF7D0] px-2 py-2 text-center font-semibold text-[#14532D] whitespace-nowrap valor-total">
                                 {{ $totalUser }}/{{ $totalRefsAll }}
                             </td>
                             @foreach($categorias as $cat)
                                 @foreach($cat['refs'] as $ref)
-                                    @php $marcado = in_array($ref, $refsDoUser, true); @endphp
-                                    <td class="border-b border-r border-[#E4F4E8] text-center cel-objetivo">
+                                    @php
+                                        $marcado = in_array($ref, $refsDoUser, true);
+                                        $catDoRef = $refCategorias[$ref] ?? 1;
+                                        $bloqueado = $catDoRef !== $catAtiva;
+                                    @endphp
+                                    <td class="border-b border-r border-[#E4F4E8] text-center cel-objetivo transition-opacity {{ $bloqueado ? 'opacity-30 bg-gray-50/70 pointer-events-none' : '' }}"
+                                        title="{{ $bloqueado ? 'Bloqueado: selecione a Categoria ' . $catDoRef . ' para editar' : '' }}">
                                         <input type="checkbox"
                                                class="toggle-objetivo w-4 h-4 cursor-pointer"
                                                style="accent-color: {{ $cat['color'] }};"
                                                data-user="{{ $explorador->id }}"
                                                data-ref="{{ $ref }}"
+                                               data-categoria="{{ $catDoRef }}"
                                                data-original="{{ $marcado ? '1' : '0' }}"
-                                            {{ $marcado ? 'checked' : '' }}>
+                                               {{ $marcado ? 'checked' : '' }}
+                                               {{ $bloqueado ? 'disabled' : '' }}>
                                     </td>
                                 @endforeach
                             @endforeach
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ 2 + $totalRefsAll }}" class="py-10 text-center text-sm text-[#166534]">
+                            <td colspan="{{ 3 + $totalRefsAll }}" class="py-10 text-center text-sm text-[#166534]">
                                 Ainda não há exploradores registados. Usa o botão "Adicionar Explorador" acima.
                             </td>
                         </tr>
@@ -246,6 +313,58 @@
                     }
 
                     atualizarBarra();
+                });
+            });
+
+            // Manipulação da mudança de Categoria por Escuteiro
+            document.querySelectorAll('.select-categoria').forEach(function (select) {
+                select.addEventListener('change', function () {
+                    const userId = this.dataset.user;
+                    const novaCat = parseInt(this.value, 10);
+                    const routeUrl = this.dataset.route;
+
+                    // Sincroniza selects deste utilizador (mobile e desktop)
+                    document.querySelectorAll('.select-categoria[data-user="' + userId + '"]').forEach(function (s) {
+                        s.value = novaCat;
+                    });
+
+                    // Atualiza visualmente as checkboxes do utilizador
+                    document.querySelectorAll('.toggle-objetivo[data-user="' + userId + '"]').forEach(function (cb) {
+                        const catRef = parseInt(cb.dataset.categoria, 10);
+                        const ativa = catRef === novaCat;
+                        cb.disabled = !ativa;
+
+                        const cel = cb.closest('.cel-objetivo');
+                        if (cel) {
+                            if (ativa) {
+                                cel.classList.remove('opacity-30', 'bg-gray-50/70', 'bg-gray-100/70', 'pointer-events-none');
+                                cel.classList.add('cursor-pointer');
+                                cel.removeAttribute('title');
+                            } else {
+                                cel.classList.add('opacity-30', 'bg-gray-50/70', 'pointer-events-none');
+                                cel.classList.remove('cursor-pointer');
+                                cel.setAttribute('title', 'Bloqueado: selecione a Categoria ' + catRef + ' para editar');
+                            }
+                        }
+                    });
+
+                    // Envia AJAX para guardar na base de dados
+                    fetch(routeUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            user_id: parseInt(userId, 10),
+                            categoria: novaCat,
+                        }),
+                    }).then(function (res) {
+                        if (!res.ok) throw new Error('Falhou');
+                        return res.json();
+                    }).catch(function () {
+                        alert('Não foi possível gravar a alteração de categoria.');
+                    });
                 });
             });
 
