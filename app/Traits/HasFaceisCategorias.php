@@ -155,11 +155,16 @@ trait HasFaceisCategorias
     public function setCategoria(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
             'categoria' => ['required', 'integer', 'in:1,2,3'],
         ]);
 
-        $user = User::findOrFail($validated['user_id']);
+        $targetUserId = $validated['user_id'] ?? auth()->id();
+        if (!$targetUserId) {
+            return response()->json(['ok' => false, 'error' => 'Utilizador não autenticado'], 401);
+        }
+
+        $user = User::findOrFail($targetUserId);
         $user->categoria_ativa = $validated['categoria'];
         $user->save();
 

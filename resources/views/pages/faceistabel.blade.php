@@ -4,10 +4,21 @@
         <livewire:content-modal />
 
         @php
-            $approvedRefs = \App\Models\ProgressNote::where('user_id', Auth::id())
+            $categoriaAtiva = (int) ($categoriaAtiva ?? (Auth::user()?->categoria_ativa ?? 1));
+
+            $approvedRefs = $completedRefs ?? \App\Models\ProgressNote::where('user_id', Auth::id())
                 ->where('status', 'approved')
                 ->pluck('reference')
                 ->toArray();
+
+            $refCategorias = $refCategorias ?? [
+                'F1' => 1, 'F2' => 2, 'F3' => 2, 'F4' => 3, 'F5' => 3, 'F6' => 3,
+                'A1' => 1, 'A2' => 1, 'A3' => 1, 'A4' => 2, 'A5' => 3, 'A6' => 3,
+                'C1' => 1, 'C2' => 1, 'C3' => 1, 'C4' => 2, 'C5' => 2, 'C6' => 2, 'C7' => 3, 'C8' => 3,
+                'E1' => 1, 'E2' => 1, 'E3' => 1, 'E4' => 2, 'E5' => 2, 'E6' => 2, 'E7' => 3, 'E8' => 3,
+                'I1' => 1, 'I2' => 1, 'I3' => 1, 'I4' => 2, 'I5' => 2, 'I6' => 3, 'I7' => 3,
+                'S1' => 1, 'S2' => 1, 'S3' => 1, 'S4' => 2, 'S5' => 2, 'S6' => 2, 'S7' => 3,
+            ];
 
             $dimensions = [
                 [
@@ -193,10 +204,35 @@
             ];
         @endphp
 
-            <!-- Cabeçalho explicativo -->
-        <div class="mb-6">
-            <h1 class="text-xl sm:text-2xl font-bold text-[#3E2D1B]">Grelha de Objetivos do Sistema de Progresso</h1>
-            <p class="text-xs sm:text-sm text-[#776246] mt-1">Clica numa dimensão para ver as áreas e escolhe um objetivo para registar progresso.</p>
+        <!-- Cabeçalho com Seletor de Categoria Ativa -->
+        <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-[#3E2D1B]">Grelha de Objetivos do Sistema de Progresso</h1>
+                <p class="text-xs sm:text-sm text-[#776246] mt-1">
+                    Clica numa dimensão para ver as áreas. Apenas os objetivos da <strong>Categoria {{ $categoriaAtiva }}</strong> estão desbloqueados para progresso.
+                </p>
+            </div>
+
+            {{-- Select para escolher a categoria a trabalhar --}}
+            <div class="flex items-center gap-2.5 bg-white border border-[#E4D5C3] px-3.5 py-2 rounded-2xl shadow-xs self-start md:self-auto">
+                <label for="select-categoria-faceis" class="text-xs font-bold text-[#776246] uppercase tracking-wider whitespace-nowrap">
+                    Categoria a trabalhar:
+                </label>
+                <select id="select-categoria-faceis"
+                        onchange="mudarCategoriaCla(this.value)"
+                        class="text-xs font-bold text-[#3E2D1B] bg-[#FAF7F5] border border-[#E4D5C3] rounded-xl px-2.5 py-1.5 focus:ring-1 focus:ring-[#776246] focus:border-[#776246] cursor-pointer">
+                    <option value="1" {{ $categoriaAtiva === 1 ? 'selected' : '' }}>
+                        Categoria 1 (1ª Etapa - Comunidade) {{ ($progressoEtapas['cat1_completa'] ?? false) ? '✓' : '' }}
+                    </option>
+                    <option value="2" {{ $categoriaAtiva === 2 ? 'selected' : '' }}>
+                        Categoria 2 (2ª Etapa - Partida) {{ ($progressoEtapas['cat2_completa'] ?? false) ? '✓' : '' }}
+                    </option>
+                    <option value="3" {{ $categoriaAtiva === 3 ? 'selected' : '' }}>
+                        Categoria 3 (3ª Etapa - Serviço) {{ ($progressoEtapas['cat3_completa'] ?? false) ? '✓' : '' }}
+                    </option>
+                </select>
+                <span id="categoria-cla-loading" class="hidden text-xs text-[#DC2626] font-semibold animate-pulse">A guardar...</span>
+            </div>
         </div>
 
         <!-- Lista de Acordeões por Dimensão -->
@@ -252,35 +288,73 @@
                          x-transition:enter-end="opacity-100 max-h-[2000px]"
                          class="border-t border-[#E4D5C3] bg-[#FAF7F5] p-4 sm:p-6 space-y-6">
 
-                        @foreach($dim['subcategories'] as $sub)
-                            <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-[#E4D5C3] shadow-2xs">
+                        @foreach($dim['subcategories'] as $subCatIndex => $sub)
+                            @php
+                                $subCatNum = $subCatIndex + 1;
+                                $isSubCatActive = ($subCatNum === (int) $categoriaAtiva);
+                                $subAllDone = collect($sub['items'])->every(fn($it) => in_array($it['ref'], $approvedRefs));
+                            @endphp
+                            <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-[#E4D5C3] shadow-2xs {{ !$isSubCatActive ? 'bg-gray-50/50' : '' }}">
                                 <!-- Nível 2: Área de Desenvolvimento -->
-                                <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2"
-                                    style="color: {{ $dim['color'] }};">
-                                    <span class="w-2 h-2 rounded-full" style="background-color: {{ $dim['color'] }};"></span>
-                                    {{ $sub['title'] }}
-                                </h3>
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center gap-2"
+                                        style="color: {{ $dim['color'] }};">
+                                        <span class="w-2 h-2 rounded-full" style="background-color: {{ $dim['color'] }};"></span>
+                                        {{ $sub['title'] }}
+                                    </h3>
+
+                                    <div class="flex items-center gap-2">
+                                        @if($subAllDone)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
+                                                Concluída ✓
+                                            </span>
+                                        @elseif($isSubCatActive)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                Categoria Ativa ({{ $subCatNum }})
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200" title="Ativa a Categoria {{ $subCatNum }} no topo para desbloquear estes objetivos">
+                                                <svg class="w-2.5 h-2.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                                </svg>
+                                                Categoria {{ $subCatNum }} (Bloqueada)
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
 
                                 <!-- Nível 3: Objetivos / Referências -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                                     @foreach($sub['items'] as $item)
-                                        @php $isCompleted = in_array($item['ref'], $approvedRefs); @endphp
-                                        <div @click="$dispatch('open-content-modal', { category: '{{ $dim['category'] }}', content: '{{ addslashes($item['text']) }}', reference: '{{ $item['ref'] }}', color: '{{ $dim['color'] }}' })"
-                                             class="cursor-pointer p-3 rounded-xl border border-[#E4D5C3] hover:border-gray-400 hover:bg-[#FAF7F5] transition-all flex items-start gap-3 group {{ $isCompleted ? 'bg-gray-50/70 border-gray-200' : 'bg-white' }}">
+                                        @php
+                                            $isCompleted = in_array($item['ref'], $approvedRefs);
+                                            $refCat = $refCategorias[$item['ref']] ?? $subCatNum;
+                                            $isActive = ($refCat === (int) $categoriaAtiva);
+                                        @endphp
+                                        <div @if($isActive) @click="$dispatch('open-content-modal', { category: '{{ $dim['category'] }}', content: '{{ addslashes($item['text']) }}', reference: '{{ $item['ref'] }}', color: '{{ $dim['color'] }}' })" @endif
+                                             title="{{ !$isActive && !$isCompleted ? 'Bloqueado: Pertence à Categoria ' . $refCat . '. Seleciona a Categoria ' . $refCat . ' no topo para trabalhar neste objetivo.' : ($isCompleted ? 'Objetivo já aprovado' : 'Clica para registar progresso') }}"
+                                             class="p-3 rounded-xl border transition-all flex items-start gap-3 group relative {{ $isActive ? 'cursor-pointer border-[#E4D5C3] hover:border-gray-400 hover:bg-[#FAF7F5] ' . ($isCompleted ? 'bg-gray-50/70 border-gray-200' : 'bg-white shadow-2xs') : ($isCompleted ? 'bg-gray-50/70 border-gray-200 opacity-60 cursor-default' : 'bg-gray-100/70 border-dashed border-gray-300 opacity-40 cursor-not-allowed') }}">
 
                                             <span class="px-2 py-1 rounded-md text-xs font-bold text-white shrink-0 mt-0.5 shadow-xs"
-                                                  style="background-color: {{ $dim['color'] }};">
+                                                  style="background-color: {{ $isActive || $isCompleted ? $dim['color'] : '#9CA3AF' }};">
                                                 {{ $item['ref'] }}
                                             </span>
 
-                                            <p class="text-xs text-[#3E2D1B] leading-relaxed flex-1 {{ $isCompleted ? 'line-through decoration-2 opacity-50' : '' }}">
+                                            <p class="text-xs text-[#3E2D1B] leading-relaxed flex-1 {{ $isCompleted ? 'line-through decoration-2 opacity-50' : (!$isActive ? 'text-gray-500' : '') }}">
                                                 {{ $item['text'] }}
                                             </p>
 
                                             @if($isCompleted)
-                                                <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background-color: {{ $dim['color'] }};">
+                                                <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background-color: {{ $dim['color'] }};" title="Aprovado">
                                                     <svg class="w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                            @elseif(!$isActive)
+                                                <div class="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center shrink-0 text-gray-500" title="Bloqueado (Pertence à Categoria {{ $refCat }})">
+                                                    <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                                                     </svg>
                                                 </div>
                                             @endif
@@ -296,4 +370,37 @@
         </div>
 
     </div>
+
+    <script>
+        function mudarCategoriaCla(cat) {
+            const loading = document.getElementById('categoria-cla-loading');
+            if (loading) loading.classList.remove('hidden');
+
+            fetch('{{ route('cla.set-categoria') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    categoria: parseInt(cat)
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Erro ao atualizar categoria');
+                    if (loading) loading.classList.add('hidden');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Erro ao comunicar com o servidor');
+                if (loading) loading.classList.add('hidden');
+            });
+        }
+    </script>
 </x-app-layout>

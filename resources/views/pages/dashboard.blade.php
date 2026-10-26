@@ -2,7 +2,7 @@
     <div class="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-6 lg:px-8 pb-16">
 
         @php
-            $categories = [
+            $categories = $categories ?? [
                 ['label' => 'F', 'name' => 'Físico', 'color' => '#16a34a', 'refs' => ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']],
                 ['label' => 'A', 'name' => 'Afectivo', 'color' => '#dc2626', 'refs' => ['A1', 'A2', 'A3', 'A4', 'A5', 'A6']],
                 ['label' => 'C', 'name' => 'Carácter', 'color' => '#2563eb', 'refs' => ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']],
@@ -11,7 +11,53 @@
                 ['label' => 'S', 'name' => 'Social', 'color' => '#eab308', 'refs' => ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']],
             ];
 
-            $completedRefs = \App\Models\ProgressNote::where('user_id', Auth::id())
+            $subcategorias = $subcategorias ?? [
+                'F' => [
+                    1 => ['title' => 'Desempenho', 'refs' => ['F1']],
+                    2 => ['title' => 'Auto-conhecimento', 'refs' => ['F2', 'F3']],
+                    3 => ['title' => 'Bem-estar Físico', 'refs' => ['F4', 'F5', 'F6']],
+                ],
+                'A' => [
+                    1 => ['title' => 'Relacionamento e Sensibilidade', 'refs' => ['A1', 'A2', 'A3']],
+                    2 => ['title' => 'Equilíbrio emocional', 'refs' => ['A4']],
+                    3 => ['title' => 'Auto-estima', 'refs' => ['A5', 'A6']],
+                ],
+                'C' => [
+                    1 => ['title' => 'Autonomia', 'refs' => ['C1', 'C2', 'C3']],
+                    2 => ['title' => 'Responsabilidade', 'refs' => ['C4', 'C5', 'C6']],
+                    3 => ['title' => 'Coerência', 'refs' => ['C7', 'C8']],
+                ],
+                'E' => [
+                    1 => ['title' => 'Descoberta', 'refs' => ['E1', 'E2', 'E3']],
+                    2 => ['title' => 'Aprofundamento', 'refs' => ['E4', 'E5', 'E6']],
+                    3 => ['title' => 'Serviço', 'refs' => ['E7', 'E8']],
+                ],
+                'I' => [
+                    1 => ['title' => 'Procura do conhecimento', 'refs' => ['I1', 'I2', 'I3']],
+                    2 => ['title' => 'Resolução de problemas', 'refs' => ['I4', 'I5']],
+                    3 => ['title' => 'Criatividade e Expressão', 'refs' => ['I6', 'I7']],
+                ],
+                'S' => [
+                    1 => ['title' => 'Exercer ativamente Cidadania', 'refs' => ['S1', 'S2', 'S3']],
+                    2 => ['title' => 'Solidariedade e tolerância', 'refs' => ['S4', 'S5', 'S6']],
+                    3 => ['title' => 'Interação e cooperação', 'refs' => ['S7']],
+                ],
+            ];
+
+            $refCategorias = $refCategorias ?? [];
+            if (empty($refCategorias)) {
+                foreach ($subcategorias as $dim => $cats) {
+                    foreach ($cats as $catNum => $catData) {
+                        foreach ($catData['refs'] as $ref) {
+                            $refCategorias[$ref] = $catNum;
+                        }
+                    }
+                }
+            }
+
+            $categoriaAtiva = (int) ($categoriaAtiva ?? (Auth::user()?->categoria_ativa ?? 1));
+
+            $completedRefs = $completedRefs ?? \App\Models\ProgressNote::where('user_id', Auth::id())
                 ->where('status', 'approved')
                 ->pluck('reference')
                 ->toArray();
@@ -19,24 +65,64 @@
             $totalRefsAll = collect($categories)->sum(fn ($cat) => count($cat['refs']));
             $completedCountAll = count($completedRefs);
 
-            $comunidadePercent = $comunidadePercent ?? 0;
-            $partidaPercent    = $partidaPercent ?? 0;
-            $servicoPercent    = $servicoPercent ?? 0;
+            // Determinar conclusão das etapas (Categorias 1, 2 e 3)
+            $cat1Completa = $progressoEtapas['cat1_completa'] ?? false;
+            $cat2Completa = $progressoEtapas['cat2_completa'] ?? false;
+            $cat3Completa = $progressoEtapas['cat3_completa'] ?? false;
+
+            $comunidadePercent = $comunidadePercent ?? ($cat1Completa ? 100 : 0);
+            $partidaPercent    = $partidaPercent ?? ($cat2Completa ? 100 : 0);
+            $servicoPercent    = $servicoPercent ?? ($cat3Completa ? 100 : 0);
             $overallPillarPercent = round(($comunidadePercent + $partidaPercent + $servicoPercent) / 3);
 
             $gap = 4;
             $segment = (360 - ($gap * 3)) / 3;
+
+            // Os 3 pilares correspondem às 3 Etapas das Categorias
+            // Quando a categoria é concluída, a etapa é ganha e a respetiva parte do círculo fica a VERMELHO (#DC2626)!
             $pilares = [
-                ['label' => 'Comunidade', 'percent' => $comunidadePercent, 'color' => '#7F1D1D'],
-                ['label' => 'Partida',    'percent' => $partidaPercent,    'color' => '#DC2626'],
-                ['label' => 'Serviço',    'percent' => $servicoPercent,    'color' => '#FCA5A5'],
+                [
+                    'label'     => 'Comunidade',
+                    'etapa'     => '1ª Etapa',
+                    'cat'       => 1,
+                    'percent'   => $comunidadePercent,
+                    'completed' => $cat1Completa,
+                    'color'     => '#DC2626',
+                ],
+                [
+                    'label'     => 'Partida',
+                    'etapa'     => '2ª Etapa',
+                    'cat'       => 2,
+                    'percent'   => $partidaPercent,
+                    'completed' => $cat2Completa,
+                    'color'     => '#DC2626',
+                ],
+                [
+                    'label'     => 'Serviço',
+                    'etapa'     => '3ª Etapa',
+                    'cat'       => 3,
+                    'percent'   => $servicoPercent,
+                    'completed' => $cat3Completa,
+                    'color'     => '#DC2626',
+                ],
             ];
+
             $stops = [];
             $cursor = 0;
             foreach ($pilares as $p) {
-                $filled = ($p['percent'] / 100) * $segment;
-                $stops[] = "{$p['color']} {$cursor}deg " . ($cursor + $filled) . 'deg';
-                $stops[] = '#F0E9E1 ' . ($cursor + $filled) . 'deg ' . ($cursor + $segment) . 'deg';
+                if ($p['completed']) {
+                    // Categoria concluída -> Etapa ganha -> Parte fica completamente a VERMELHO!
+                    $stops[] = "{$p['color']} {$cursor}deg " . ($cursor + $segment) . 'deg';
+                } else {
+                    // Em progresso: preenchimento suave proporcional, e o restante cinzento neutro
+                    $filled = ($p['percent'] / 100) * $segment;
+                    if ($filled > 0) {
+                        $stops[] = "#F87171 {$cursor}deg " . ($cursor + $filled) . 'deg';
+                        $stops[] = "#F0E9E1 " . ($cursor + $filled) . "deg " . ($cursor + $segment) . "deg";
+                    } else {
+                        $stops[] = "#F0E9E1 {$cursor}deg " . ($cursor + $segment) . "deg";
+                    }
+                }
                 $cursor += $segment;
                 $stops[] = "transparent {$cursor}deg " . ($cursor + $gap) . 'deg';
                 $cursor += $gap;
@@ -96,10 +182,33 @@
             $estaNoMesAtual  = $mesReferencia->format('Y-m') === $hoje->format('Y-m');
         @endphp
 
-        {{-- CABEÇALHO --}}
-        <div class="mb-6 px-2 sm:px-0">
-            <h1 class="text-xl sm:text-2xl font-bold text-[#3E2D1B]">O meu Sistema de Progresso</h1>
-            <p class="text-xs sm:text-sm text-[#776246] mt-1">Acompanha a tua caminhada no Clã, pilar a pilar e dimensão a dimensão.</p>
+        {{-- CABEÇALHO COM SELETOR DE CATEGORIA DO CLÃ --}}
+        <div class="mb-6 px-2 sm:px-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-[#3E2D1B]">O meu Sistema de Progresso</h1>
+                <p class="text-xs sm:text-sm text-[#776246] mt-1">Acompanha a tua caminhada no Clã, pilar a pilar e dimensão a dimensão.</p>
+            </div>
+
+            {{-- Select para escolher a categoria a trabalhar --}}
+            <div class="flex items-center gap-2.5 bg-white border border-[#E4D5C3] px-3.5 py-2 rounded-2xl shadow-xs self-start md:self-auto">
+                <label for="select-categoria-cla" class="text-xs font-bold text-[#776246] uppercase tracking-wider whitespace-nowrap">
+                    Categoria a trabalhar:
+                </label>
+                <select id="select-categoria-cla"
+                        onchange="mudarCategoriaCla(this.value)"
+                        class="text-xs font-bold text-[#3E2D1B] bg-[#FAF7F5] border border-[#E4D5C3] rounded-xl px-2.5 py-1.5 focus:ring-1 focus:ring-[#776246] focus:border-[#776246] cursor-pointer">
+                    <option value="1" {{ $categoriaAtiva === 1 ? 'selected' : '' }}>
+                        Categoria 1 (1ª Etapa - Comunidade) {{ $cat1Completa ? '✓' : '' }}
+                    </option>
+                    <option value="2" {{ $categoriaAtiva === 2 ? 'selected' : '' }}>
+                        Categoria 2 (2ª Etapa - Partida) {{ $cat2Completa ? '✓' : '' }}
+                    </option>
+                    <option value="3" {{ $categoriaAtiva === 3 ? 'selected' : '' }}>
+                        Categoria 3 (3ª Etapa - Serviço) {{ $cat3Completa ? '✓' : '' }}
+                    </option>
+                </select>
+                <span id="categoria-cla-loading" class="hidden text-xs text-[#DC2626] font-semibold animate-pulse">A guardar...</span>
+            </div>
         </div>
 
         {{-- LINHA DE TOPO: Círculo + Dados do utilizador --}}
@@ -119,12 +228,25 @@
                     </div>
                 </div>
 
-                <div class="flex gap-3 sm:gap-4 mt-6 flex-wrap justify-center">
+                {{-- Pilares / Etapas do Progresso --}}
+                <div class="flex gap-2.5 sm:gap-3 mt-6 flex-wrap justify-center">
                     @foreach($pilares as $p)
-                        <div class="flex items-center gap-1.5" title="{{ $p['label'] }}: {{ $p['percent'] }}%">
-                            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $p['color'] }};"></div>
+                        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border {{ $p['completed'] ? 'bg-red-50 border-red-300' : ($p['cat'] === $categoriaAtiva ? 'bg-amber-50/70 border-amber-300' : 'bg-[#FAF7F5] border-[#E4D5C3]') }}"
+                             title="{{ $p['label'] }} ({{ $p['etapa'] }}): {{ $p['percent'] }}% {{ $p['completed'] ? '— Concluída' : '' }}">
+                            <div class="w-3 h-3 rounded-full shrink-0 flex items-center justify-center {{ $p['completed'] ? 'bg-[#DC2626]' : ($p['percent'] > 0 ? 'bg-[#F87171]' : 'bg-gray-300') }}">
+                                @if($p['completed'])
+                                    <svg class="w-2 h-2 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
+                                    </svg>
+                                @endif
+                            </div>
                             <span class="text-[10px] sm:text-xs font-bold text-[#3E2D1B] uppercase tracking-wide">{{ $p['label'] }}</span>
-                            <span class="text-[10px] sm:text-xs text-[#B0977A]">{{ $p['percent'] }}%</span>
+                            <span class="text-[10px] sm:text-xs {{ $p['completed'] ? 'text-[#DC2626] font-bold' : 'text-[#B0977A]' }}">{{ $p['percent'] }}%</span>
+                            @if($p['completed'])
+                                <span class="text-[9px] font-black bg-[#DC2626] text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">Etapa Concluída</span>
+                            @elseif($p['cat'] === $categoriaAtiva)
+                                <span class="text-[9px] font-bold bg-amber-500 text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">Em curso</span>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -196,8 +318,16 @@
             {{-- COLUNA ESQUERDA (2/3): Tabela de progresso por dimensão --}}
             <div class="lg:col-span-2 bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
-                    <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest">Detalhe por Dimensão</h3>
-                    <span class="text-xs font-semibold text-[#B0977A]">{{ $completedCountAll }} de {{ $totalRefsAll }} concluídos</span>
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest">Detalhe por Dimensão</h3>
+                        <p class="text-[11px] text-[#B0977A] mt-0.5">Apenas os objetivos da <strong>Categoria {{ $categoriaAtiva }}</strong> estão desbloqueados para trabalho.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-semibold text-[#B0977A]">{{ $completedCountAll }} de {{ $totalRefsAll }} concluídos</span>
+                        <a href="{{ route('allcalendar') }}" class="text-xs font-bold text-[#DC2626] hover:underline flex items-center gap-0.5">
+                            Grelha →
+                        </a>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 sm:gap-y-5">
@@ -226,14 +356,20 @@
                                 </div>
                                 <div class="flex flex-wrap gap-1.5 sm:gap-2">
                                     @foreach($cat['refs'] as $ref)
-                                        @php $isCompleted = in_array($ref, $completedRefs); @endphp
-                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-300"
-                                             style="{{ $isCompleted ? 'background-color: ' . $cat['color'] . '; border-color: ' . $cat['color'] : 'border-color: #E5E7EB; background-color: white' }}"
-                                             title="{{ $ref }}{{ $isCompleted ? ' — aprovado' : ' — por realizar' }}">
+                                        @php
+                                            $isCompleted = in_array($ref, $completedRefs);
+                                            $refCat = $refCategorias[$ref] ?? 1;
+                                            $isActive = ($refCat === (int) $categoriaAtiva);
+                                        @endphp
+                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-300 {{ !$isActive && !$isCompleted ? 'opacity-30 border-dashed border-gray-400 bg-gray-100 cursor-not-allowed' : '' }}"
+                                             style="{{ $isCompleted ? 'background-color: ' . $cat['color'] . '; border-color: ' . $cat['color'] : ($isActive ? 'border-color: ' . $cat['color'] . '; background-color: white' : 'border-color: #D1D5DB; background-color: #F3F4F6') }}"
+                                             title="{{ $ref }} (Cat. {{ $refCat }}){{ $isCompleted ? ' — aprovado' : ($isActive ? ' — por realizar (ativa)' : ' — bloqueado (Cat. ' . $refCat . ')') }}">
                                             @if($isCompleted)
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
                                                 </svg>
+                                            @elseif(!$isActive)
+                                                <span class="w-1 h-1 rounded-full bg-gray-400"></span>
                                             @endif
                                         </div>
                                     @endforeach
@@ -248,15 +384,15 @@
             <div class="bg-white rounded-[20px] sm:rounded-[24px] shadow-sm border border-[#E4D5C3] p-4 sm:p-6 flex flex-col">
                 <h3 class="text-xs sm:text-sm font-bold text-[#776246] uppercase tracking-widest mb-4">Como funciona</h3>
 
-                <p class="text-xs sm:text-sm text-[#3E2D1B] leading-relaxed mb-5">
+                <p class="text-xs sm:text-sm text-[#3E2D1B] leading-relaxed mb-4">
                     Cada pilar — <strong>Comunidade</strong>, <strong>Partida</strong> e <strong>Serviço</strong> —
-                    representa uma etapa do teu Caminho. Dentro de cada um, o teu crescimento é avaliado
-                    nas 6 dimensões pessoais à esquerda.
+                    representa uma etapa do teu Caminho correspondente a uma <strong>Categoria</strong>.
+                    Ao completares todos os objetivos de uma categoria em todas as dimensões, ganhas essa etapa e a respetiva parte do círculo fica a <strong>vermelho</strong>.
                 </p>
 
-                <div class="space-y-2.5 mb-5">
+                <div class="space-y-2 mb-5">
                     <div class="flex items-center gap-3">
-                        <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style="background-color:#3E2D1B;">
+                        <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style="background-color:#DC2626;">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
                             </svg>
@@ -264,8 +400,14 @@
                         <span class="text-xs text-[#776246]">Objetivo aprovado</span>
                     </div>
                     <div class="flex items-center gap-3">
-                        <div class="w-4 h-4 rounded-full border-2 border-[#E5E7EB] bg-white shrink-0"></div>
-                        <span class="text-xs text-[#776246]">Por realizar</span>
+                        <div class="w-4 h-4 rounded-full border-2 border-[#16a34a] bg-white shrink-0"></div>
+                        <span class="text-xs text-[#776246]">Disponível (Categoria {{ $categoriaAtiva }} ativa)</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-100 flex items-center justify-center shrink-0 opacity-70">
+                            <span class="w-1 h-1 rounded-full bg-gray-400"></span>
+                        </div>
+                        <span class="text-xs text-[#776246]">Bloqueado (outra categoria)</span>
                     </div>
                 </div>
 
@@ -422,4 +564,37 @@
         </div>
 
     </div>
+
+    <script>
+        function mudarCategoriaCla(cat) {
+            const loading = document.getElementById('categoria-cla-loading');
+            if (loading) loading.classList.remove('hidden');
+
+            fetch('{{ route('cla.set-categoria') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    categoria: parseInt(cat)
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Erro ao atualizar categoria');
+                    if (loading) loading.classList.add('hidden');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Erro ao comunicar com o servidor');
+                if (loading) loading.classList.add('hidden');
+            });
+        }
+    </script>
 </x-app-layout>
