@@ -213,25 +213,35 @@
                 </p>
             </div>
 
-            {{-- Select para escolher a categoria a trabalhar --}}
-            <div class="flex items-center gap-2.5 bg-white border border-[#E4D5C3] px-3.5 py-2 rounded-2xl shadow-xs self-start md:self-auto">
-                <label for="select-categoria-faceis" class="text-xs font-bold text-[#776246] uppercase tracking-wider whitespace-nowrap">
-                    Categoria a trabalhar:
-                </label>
-                <select id="select-categoria-faceis"
-                        onchange="mudarCategoriaCla(this.value)"
-                        class="text-xs font-bold text-[#3E2D1B] bg-[#FAF7F5] border border-[#E4D5C3] rounded-xl px-2.5 py-1.5 focus:ring-1 focus:ring-[#776246] focus:border-[#776246] cursor-pointer">
-                    <option value="1" {{ $categoriaAtiva === 1 ? 'selected' : '' }}>
-                        Categoria 1 (1ª Etapa - Comunidade) {{ ($progressoEtapas['cat1_completa'] ?? false) ? '✓' : '' }}
-                    </option>
-                    <option value="2" {{ $categoriaAtiva === 2 ? 'selected' : '' }}>
-                        Categoria 2 (2ª Etapa - Partida) {{ ($progressoEtapas['cat2_completa'] ?? false) ? '✓' : '' }}
-                    </option>
-                    <option value="3" {{ $categoriaAtiva === 3 ? 'selected' : '' }}>
-                        Categoria 3 (3ª Etapa - Serviço) {{ ($progressoEtapas['cat3_completa'] ?? false) ? '✓' : '' }}
-                    </option>
-                </select>
-                <span id="categoria-cla-loading" class="hidden text-xs text-[#DC2626] font-semibold animate-pulse">A guardar...</span>
+            {{-- Seletor de Categoria — Botões Pill (mesmo padrão da dashboard) --}}
+            <div class="flex flex-col gap-1.5 self-start md:self-auto">
+                <p class="text-[10px] font-bold text-[#B0977A] uppercase tracking-wider px-1">Categoria a trabalhar</p>
+                <div class="flex items-center gap-1.5 bg-[#FAF7F5] border border-[#E4D5C3] rounded-2xl p-1 shadow-xs">
+                    @foreach([
+                        ['num' => 1, 'label' => 'Comunidade', 'done' => ($progressoEtapas['cat1_completa'] ?? false)],
+                        ['num' => 2, 'label' => 'Partida',    'done' => ($progressoEtapas['cat2_completa'] ?? false)],
+                        ['num' => 3, 'label' => 'Serviço',    'done' => ($progressoEtapas['cat3_completa'] ?? false)],
+                    ] as $btn)
+                        <button type="button"
+                                onclick="mudarCategoriaCla({{ $btn['num'] }})"
+                                id="btn-cat-{{ $btn['num'] }}"
+                                class="relative flex flex-col items-center px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all duration-200 focus:outline-none
+                                    {{ $categoriaAtiva === $btn['num']
+                                        ? 'bg-[#3E2D1B] text-white shadow-sm'
+                                        : 'text-[#776246] hover:bg-white hover:text-[#3E2D1B] hover:shadow-xs' }}">
+                            <span class="font-black text-sm sm:text-base leading-none">{{ $btn['num'] }}</span>
+                            <span class="hidden sm:block mt-0.5 font-semibold opacity-80">{{ $btn['label'] }}</span>
+                            @if($btn['done'])
+                                <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#DC2626] border-2 border-white flex items-center justify-center">
+                                    <svg class="w-2 h-2 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </span>
+                            @endif
+                        </button>
+                    @endforeach
+                </div>
+                <span id="categoria-cla-loading" class="hidden text-[10px] text-[#DC2626] font-semibold animate-pulse text-center">A guardar...</span>
             </div>
         </div>
 
@@ -373,8 +383,22 @@
 
     <script>
         function mudarCategoriaCla(cat) {
+            cat = parseInt(cat);
             const loading = document.getElementById('categoria-cla-loading');
             if (loading) loading.classList.remove('hidden');
+
+            // Atualiza visualmente os botões pill
+            [1, 2, 3].forEach(function(n) {
+                const btn = document.getElementById('btn-cat-' + n);
+                if (!btn) return;
+                if (n === cat) {
+                    btn.classList.add('bg-[#3E2D1B]', 'text-white', 'shadow-sm');
+                    btn.classList.remove('text-[#776246]', 'hover:bg-white', 'hover:text-[#3E2D1B]');
+                } else {
+                    btn.classList.remove('bg-[#3E2D1B]', 'text-white', 'shadow-sm');
+                    btn.classList.add('text-[#776246]', 'hover:bg-white', 'hover:text-[#3E2D1B]');
+                }
+            });
 
             fetch('{{ route('cla.set-categoria') }}', {
                 method: 'POST',
@@ -383,9 +407,7 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    categoria: parseInt(cat)
-                })
+                body: JSON.stringify({ categoria: cat })
             })
             .then(res => res.json())
             .then(data => {

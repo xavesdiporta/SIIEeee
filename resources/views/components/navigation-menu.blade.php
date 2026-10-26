@@ -104,9 +104,18 @@
                     @endif
 
                     @if($seccao === 'cla')
-                        <x-nav-link href="{{ route('allcalendar')}}" :active="request()->routeIs('allcalendar')" class="block w-full">
-                            {{ __('O meu Progresso') }}
-                        </x-nav-link>
+                        @if(Auth::user()?->chefe || Auth::user()?->chefes)
+                            <x-nav-link href="{{ route('allcalendar') }}" :active="request()->routeIs('allcalendar')" class="block w-full">
+                                {{ __('Gestão do Clã') }}
+                            </x-nav-link>
+                            <x-nav-link href="{{ route('allcalendar') }}?view=grelha" :active="request()->is('allcalendar') && request()->query('view') === 'grelha'" class="block w-full">
+                                {{ __('O meu Progresso') }}
+                            </x-nav-link>
+                        @else
+                            <x-nav-link href="{{ route('allcalendar') }}" :active="request()->routeIs('allcalendar')" class="block w-full">
+                                {{ __('O meu Progresso') }}
+                            </x-nav-link>
+                        @endif
                         <x-nav-link href="{{ route('cla.noites-campo')}}" :active="request()->routeIs('cla.noites-campo*')" class="block w-full">
                             {{ __('Noites de Campo') }}
                         </x-nav-link>

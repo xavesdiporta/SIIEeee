@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProgressNote;
+use App\Models\User;
 use App\Services\GoogleCalendarService;
 use App\Traits\HasFaceisCategorias;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -43,6 +46,38 @@ class DashboardController extends Controller
     public function cla(Request $request, GoogleCalendarService $calendar)
     {
         $user = Auth::user();
+        $isChefe = (bool) ($user?->chefe || $user?->chefes);
+
+        // Chefe do Clã vê a tabela de gestão diretamente na dashboard principal
+        if ($isChefe) {
+            $caminheiros = User::membros()->where('seccao', 'cla')->orderBy('name')->get() ?? collect();
+
+            $matriz = ProgressNote::whereIn('user_id', $caminheiros->pluck('id'))
+                ->where('status', 'approved')
+                ->get()
+                ->groupBy('user_id')
+                ->map(fn ($notas) => $notas->pluck('reference')->all());
+
+            $progressoEtapas = [];
+            foreach ($caminheiros as $caminheiro) {
+                $userRefs = $matriz[$caminheiro->id] ?? [];
+                $progressoEtapas[$caminheiro->id] = $this->calcularProgressoEtapas($userRefs);
+            }
+
+            $categorias = $this->categorias();
+            $totalRefsAll = collect($categorias)->sum(fn ($c) => count($c['refs'] ?? []));
+
+            return view('pages.dashboards.cla-gestao', [
+                'caminheiros'     => $caminheiros,
+                'matriz'          => $matriz,
+                'progressoEtapas' => $progressoEtapas,
+                'categorias'      => $categorias,
+                'subcategorias'   => $this->subcategorias(),
+                'refCategorias'   => $this->refParaCategoria(),
+                'totalRefsAll'    => $totalRefsAll,
+            ]);
+        }
+
         $completedRefs = $user
             ? ProgressNote::where('user_id', $user->id)
                 ->where('status', 'approved')
@@ -105,9 +140,42 @@ class DashboardController extends Controller
         ];
     }
 
-    public function allcalendar()
+    public function allcalendar(Request $request)
     {
         $user = Auth::user();
+        $isChefe = (bool) ($user?->chefe || $user?->chefes);
+
+        // Se for chefe do Clã e não solicitou explicitamente a vista grelha individual (?view=grelha)
+        if ($isChefe && $user?->seccao === 'cla' && $request->query('view') !== 'grelha') {
+            $caminheiros = User::membros()->where('seccao', 'cla')->orderBy('name')->get() ?? collect();
+
+            $matriz = ProgressNote::whereIn('user_id', $caminheiros->pluck('id'))
+                ->where('status', 'approved')
+                ->get()
+                ->groupBy('user_id')
+                ->map(fn ($notas) => $notas->pluck('reference')->all());
+
+            $progressoEtapas = [];
+            foreach ($caminheiros as $caminheiro) {
+                $userRefs = $matriz[$caminheiro->id] ?? [];
+                $progressoEtapas[$caminheiro->id] = $this->calcularProgressoEtapas($userRefs);
+            }
+
+            $categorias = $this->categorias();
+            $totalRefsAll = collect($categorias)->sum(fn ($c) => count($c['refs'] ?? []));
+
+            return view('pages.dashboards.cla-gestao', [
+                'caminheiros'     => $caminheiros,
+                'matriz'          => $matriz,
+                'progressoEtapas' => $progressoEtapas,
+                'categorias'      => $categorias,
+                'subcategorias'   => $this->subcategorias(),
+                'refCategorias'   => $this->refParaCategoria(),
+                'totalRefsAll'    => $totalRefsAll,
+            ]);
+        }
+
+        // Vista de grelha individual
         $completedRefs = $user
             ? ProgressNote::where('user_id', $user->id)
                 ->where('status', 'approved')
@@ -127,7 +195,34 @@ class DashboardController extends Controller
             'refCategorias'   => $refCategorias,
             'categories'      => $categories,
             'categoriaAtiva'  => (int) ($user?->categoria_ativa ?? 1),
+            'isChefe'         => $isChefe,
         ]);
+    }
+
+    public function storeUser(Request $request)
+    {
+        $validated = $request->validate([
+            'nome' => ['required', 'string', 'max:255'],
+        ]);
+
+        $baseSlug = Str::slug($validated['nome'], '');
+        $email = $baseSlug . '@gmail.com';
+
+        $contador = 1;
+        while (User::where('email', $email)->exists()) {
+            $contador++;
+            $email = $baseSlug . $contador . '@gmail.com';
+        }
+
+        User::create([
+            'name' => $validated['nome'],
+            'email' => $email,
+            'seccao' => 'cla',
+            'chefes' => false,
+            'password' => Hash::make(Str::random(32)),
+        ]);
+
+        return back()->with('status', 'Caminheiro adicionado com sucesso.');
     }
     public function noites()
     {

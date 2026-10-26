@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Models\ProgressNote;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -173,5 +174,68 @@ trait HasFaceisCategorias
             'user_id' => $user->id,
             'categoria' => (int) $user->categoria_ativa,
         ]);
+    }
+
+    /**
+     * Endpoint AJAX para alternar um objetivo individual de um escuteiro.
+     */
+    public function toggleObjetivo(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'reference' => ['required', 'string', 'max:10'],
+            'value' => ['required', 'boolean'],
+        ]);
+
+        if ($validated['value']) {
+            ProgressNote::updateOrCreate(
+                ['user_id' => $validated['user_id'], 'reference' => $validated['reference']],
+                [
+                    'status' => 'approved',
+                    'category' => $this->categoriaDoRef($validated['reference']),
+                    'proposal' => '',
+                    'note' => '',
+                ]
+            );
+        } else {
+            ProgressNote::where('user_id', $validated['user_id'])
+                ->where('reference', $validated['reference'])
+                ->delete();
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Endpoint AJAX para alternar múltiplos objetivos em lote.
+     */
+    public function toggleObjetivoBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'changes' => ['required', 'array', 'min:1'],
+            'changes.*.user_id' => ['required', 'integer', 'exists:users,id'],
+            'changes.*.reference' => ['required', 'string', 'max:10'],
+            'changes.*.value' => ['required', 'boolean'],
+        ]);
+
+        foreach ($validated['changes'] as $change) {
+            if ($change['value']) {
+                ProgressNote::updateOrCreate(
+                    ['user_id' => $change['user_id'], 'reference' => $change['reference']],
+                    [
+                        'status' => 'approved',
+                        'category' => $this->categoriaDoRef($change['reference']),
+                        'proposal' => '',
+                        'note' => '',
+                    ]
+                );
+            } else {
+                ProgressNote::where('user_id', $change['user_id'])
+                    ->where('reference', $change['reference'])
+                    ->delete();
+            }
+        }
+
+        return response()->json(['ok' => true, 'count' => count($validated['changes'])]);
     }
 }

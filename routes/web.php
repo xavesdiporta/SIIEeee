@@ -91,6 +91,9 @@ Route::middleware([
     Route::prefix('cla')->name('cla.')->middleware(['seccao:cla'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'cla'])->name('dashboard');
         Route::post('/set-categoria', [DashboardController::class, 'setCategoria'])->name('set-categoria');
+        Route::post('/user', [DashboardController::class, 'storeUser'])->name('store-user');
+        Route::post('/toggle', [DashboardController::class, 'toggleObjetivo'])->name('toggle');
+        Route::post('/toggle-bulk', [DashboardController::class, 'toggleObjetivoBulk'])->name('toggle-bulk');
         // Noites de Campo
         Route::get('/noitesdecampo', [ExcelSheetController::class, 'noitesCampo'])->name('noites-campo');
         Route::post('/noitesdecampo/atividade', [ExcelSheetController::class, 'storeAtividadeNoitesCampo'])->name('noites-campo.store');
