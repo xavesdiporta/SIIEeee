@@ -92,9 +92,11 @@
 
                 <!-- Links de Navegação -->
                 <div class="p-4 space-y-2">
-                    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" class="block w-full">
-                        {{ __('A minha Área') }}
-                    </x-nav-link>
+                    @if(!Auth::user()?->chefe || !Auth::user()?->chefes)
+                        <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" class="block w-full">
+                            {{ __('A minha Área') }}
+                        </x-nav-link>
+                    @endif
 
                     @if($seccao === 'exploradores' ?? false)
                         <x-nav-link href="{{ route('expedicao.atas') }}" :active="request()->routeIs('expedicao.atas*')" class="block w-full">
@@ -106,6 +108,9 @@
                         @if(Auth::user()?->chefe || Auth::user()?->chefes)
                             <x-nav-link href="{{ route('allcalendar') }}" :active="request()->routeIs('allcalendar')" class="block w-full">
                                 {{ __('Gestão do Clã') }}
+                            </x-nav-link>
+                            <x-nav-link href="{{ route('allcalendar') }}?view=grelha" :active="request()->is('allcalendar') && request()->query('view') === 'grelha'" class="block w-full">
+                                {{ __('O meu Progresso') }}
                             </x-nav-link>
                         @else
                             <x-nav-link href="{{ route('allcalendar') }}" :active="request()->routeIs('allcalendar')" class="block w-full">
